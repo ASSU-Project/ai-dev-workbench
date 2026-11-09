@@ -660,6 +660,7 @@ class LogCompressorPayload(BaseModel):
 
 
 class SchemaValidatorPayload(BaseModel):
+    model_config = {"protected_namespaces": ()}
     raw_json: str
     schema_json: str
 

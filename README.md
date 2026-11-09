@@ -1,6 +1,6 @@
-# 🛠️ Presidio Shield & AI Dev Studio (`v2.0`)
+# 🛠️ AI Dev Workbench (`v2.0`)
 
-**Enterprise PII/Secret Redaction Engine + 22 Offline AI-Centric Developer Utilities**  
+**22 Offline AI-Centric Developer Utilities + Enterprise PII/Secret Guardrails**  
 Powered by [data-privacy-stack/presidio](https://github.com/data-privacy-stack/presidio) (`presidio-analyzer` + `presidio-anonymizer`), `spaCy` (`en_core_web_sm`), Thai Custom Recognizers (Modulo-11 National ID Checksum, 3-Part Thai Honorific Names, Thai Grapheme Cluster Segmentation), and a 16-Worker Parallel Execution Engine.
 
 Runs **100% Offline Locally** as a native **macOS (`.dmg` / `.app`)** and **Windows (`.exe`)** Desktop Application, or as a containerized **FastAPI Production Web Service**.

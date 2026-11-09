@@ -1,7 +1,7 @@
 # AGENTS.md — AI Coding Agent Instructions
 
 ## 1. Project Overview
-- **Project**: `Presidio Shield & AI Dev Studio`
+- **Project**: `AI Dev Workbench` (`ASSU-Project/ai-dev-workbench`)
 - **Stack**: Python 3.12+, FastAPI, Uvicorn, Microsoft/Data-Privacy-Stack `presidio-analyzer` & `presidio-anonymizer`, `spaCy` (`en_core_web_sm`), `openpyxl`, `pywebview`, Vanilla ES6 + Modern Light UI.
 
 ## 2. Essential Commands
