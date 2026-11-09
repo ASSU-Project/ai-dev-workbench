@@ -135,8 +135,8 @@ def compile_go_binaries() -> None:
         subprocess.run(["go", "get", "github.com/xuri/excelize/v2"], cwd=NATIVE_DIR, check=True)
         subprocess.run(["go", "mod", "tidy"], cwd=NATIVE_DIR, check=True)
 
-    # 1. macOS Apple Silicon (arm64) binary for PresidioShield.app
-    univ_bin = DIST_DIR / "PresidioShield_darwin_universal"
+    # 1. macOS Apple Silicon (arm64) binary for AIDevWorkbench.app
+    univ_bin = DIST_DIR / "AIDevWorkbench_darwin_universal"
     env_arm = {**os.environ, "GOOS": "darwin", "GOARCH": "arm64", "CGO_ENABLED": "0"}
     subprocess.run(
         ["go", "build", "-ldflags=-s -w", "-o", str(univ_bin), "."],
@@ -150,8 +150,8 @@ def compile_go_binaries() -> None:
     (DIST_DIR / "_bin_darwin_amd64").unlink(missing_ok=True)
 
     # 2. Windows 64-bit Installer (.exe) and Portable (.exe)
-    win_setup_exe = DIST_DIR / "PresidioShield-Setup-x64.exe"
-    win_portable_exe = DIST_DIR / "PresidioShield-Portable-x64.exe"
+    win_setup_exe = DIST_DIR / "AIDevWorkbench-Setup-x64.exe"
+    win_portable_exe = DIST_DIR / "AIDevWorkbench-Portable-x64.exe"
     env_win = {**os.environ, "GOOS": "windows", "GOARCH": "amd64", "CGO_ENABLED": "0"}
     subprocess.run(
         ["go", "build", "-ldflags=-H=windowsgui -s -w", "-o", str(win_setup_exe), "."],
@@ -163,8 +163,8 @@ def compile_go_binaries() -> None:
 
 
 def create_macos_app_and_dmg() -> None:
-    """Create `dist/PresidioShield.app` and `dist/PresidioShield-macOS.dmg`."""
-    app_dir = DIST_DIR / "PresidioShield.app"
+    """Create `dist/AIDevWorkbench.app` and `dist/AIDevWorkbench-macOS.dmg`."""
+    app_dir = DIST_DIR / "AIDevWorkbench.app"
     if app_dir.exists():
         shutil.rmtree(app_dir)
 
@@ -173,9 +173,9 @@ def create_macos_app_and_dmg() -> None:
     macos_dir.mkdir(parents=True, exist_ok=True)
     res_dir.mkdir(parents=True, exist_ok=True)
 
-    # Move universal binary into Contents/MacOS/PresidioShield
-    univ_bin = DIST_DIR / "PresidioShield_darwin_universal"
-    target_bin = macos_dir / "PresidioShield"
+    # Move universal binary into Contents/MacOS/AIDevWorkbench
+    univ_bin = DIST_DIR / "AIDevWorkbench_darwin_universal"
+    target_bin = macos_dir / "AIDevWorkbench"
     shutil.move(str(univ_bin), str(target_bin))
     target_bin.chmod(0o755)
 
@@ -189,23 +189,23 @@ def create_macos_app_and_dmg() -> None:
 <plist version="1.0">
 <dict>
     <key>CFBundleDisplayName</key>
-    <string>Presidio Shield</string>
+    <string>AI Dev Workbench</string>
     <key>CFBundleExecutable</key>
-    <string>PresidioShield</string>
+    <string>AIDevWorkbench</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>org.dataprivacystack.presidioshield</string>
+    <string>org.assuproject.aidevworkbench</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>Presidio Shield</string>
+    <string>AI Dev Workbench</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>2.0.0</string>
     <key>CFBundleVersion</key>
-    <string>1.0.0</string>
+    <string>2.0.0</string>
     <key>LSMinimumSystemVersion</key>
     <string>11.0</string>
     <key>NSHighResolutionCapable</key>
@@ -227,10 +227,10 @@ def create_macos_app_and_dmg() -> None:
         shutil.rmtree(dmg_staging)
     dmg_staging.mkdir(parents=True, exist_ok=True)
 
-    shutil.copytree(app_dir, dmg_staging / "PresidioShield.app", symlinks=True)
+    shutil.copytree(app_dir, dmg_staging / "AI Dev Workbench.app", symlinks=True)
     os.symlink("/Applications", dmg_staging / "Applications")
 
-    dmg_path = DIST_DIR / "PresidioShield-macOS.dmg"
+    dmg_path = DIST_DIR / "AIDevWorkbench-macOS.dmg"
     if dmg_path.exists():
         dmg_path.unlink()
 
@@ -239,7 +239,7 @@ def create_macos_app_and_dmg() -> None:
             "hdiutil",
             "create",
             "-volname",
-            "Presidio Shield Installer",
+            "AI Dev Workbench Installer",
             "-srcfolder",
             str(dmg_staging),
             "-ov",
