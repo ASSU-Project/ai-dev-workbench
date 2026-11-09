@@ -626,5 +626,88 @@ def test_nine_next_gen_ai_developer_tools():
     assert "<TH_PHONE_NUMBER>" in r_ed.json()["jsonl_output"]
 
 
+def test_encoding_and_format_converter_on_csv_and_mojibake():
+    """Verify UTF-8 BOM, TIS-620/CP874, UTF-16, Thai Mojibake repair, and CSV/TSV/XLSX/JSONL/SQL conversion."""
+    client = TestClient(app)
+
+    # 1. Inspect workspace CSV (the user's 140,104-row test CSV or fallback route CSV)
+    r_insp = client.post(
+        "/api/tools/format-converter/inspect",
+        data={"use_workspace_csv": "true"},
+    )
+    assert r_insp.status_code == 200
+    info = r_insp.json()
+    assert info["total_rows"] >= 5
+    assert "province_name" in info["headers"]
+    assert "delivery_count" in info["headers"]
+    assert "delivery_count" in info["formatted_number_columns"]
+
+    # 2. Convert workspace CSV to UTF-8 with BOM (Excel Thai Safe)
+    r_bom = client.post(
+        "/api/tools/format-converter/convert",
+        data={
+            "use_workspace_csv": "true",
+            "target_encoding": "utf-8-sig",
+            "target_format": "csv",
+            "fix_mojibake": "false",
+        },
+    )
+    assert r_bom.status_code == 200
+    bom_data = r_bom.json()
+    assert bom_data["has_utf8_bom"] is True
+    assert bom_data["rows_processed"] == info["total_rows"]
+
+    # Download converted file and verify UTF-8 BOM bytes (EF BB BF)
+    r_dl = client.get(bom_data["download_url"])
+    assert r_dl.status_code == 200
+    assert r_dl.content.startswith(b"\xef\xbb\xbf")
+
+    # 3. Test TIS-620 / CP874 legacy Thai file upload -> UTF-8 with BOM + TSV + Clean Numbers
+    tis_csv = (
+        '"routeid","province_name","delivery_count"\r\n'
+        '1,กรุงเทพมหานคร,"72,243"\r\n'
+        '2,เชียงใหม่,"14,261"\r\n'
+    ).encode("cp874")
+    r_tis = client.post(
+        "/api/tools/format-converter/convert",
+        files={"file": ("legacy_tis620.csv", tis_csv, "text/csv")},
+        data={
+            "source_encoding": "auto",
+            "target_encoding": "utf-8-sig",
+            "target_format": "tsv",
+            "clean_numbers": "true",
+            "trim_whitespace": "true",
+        },
+    )
+    assert r_tis.status_code == 200
+    tis_out = r_tis.json()
+    assert tis_out["source_encoding"] == "cp874"
+    assert "1\tกรุงเทพมหานคร\t72243" in tis_out["preview_text"]
+    assert tis_out["numbers_cleaned_count"] == 2
+
+    # 4. Test Thai Mojibake repair (both Latin-1/CP1252 à¸... and CP874 เธ...เน...) -> JSONL & SQL
+    mojibake_csv = (
+        '"routeid","province_name","delivery_count"\r\n'
+        '1,à¸à¸£à¸¸à¸‡à¹€à¸—à¸žà¸¡à¸«à¸²à¸™à¸„à¸£,"72,243"\r\n'
+        '2,เธเธฃเธธเธ‡เน€เธ—เธžเธกเธซเธฒเธ™เธ„เธฃ,"64,785"\r\n'
+    )
+    r_moji = client.post(
+        "/api/tools/format-converter/convert",
+        data={
+            "raw_text": mojibake_csv,
+            "target_encoding": "utf-8",
+            "target_format": "jsonl",
+            "fix_mojibake": "true",
+            "clean_numbers": "true",
+        },
+    )
+    assert r_moji.status_code == 200
+    moji_data = r_moji.json()
+    assert moji_data["mojibake_repaired_count"] >= 2
+    assert '"province_name": "กรุงเทพมหานคร"' in moji_data["preview_text"]
+    assert '"delivery_count": 72243' in moji_data["preview_text"]
+
+
+
 
 

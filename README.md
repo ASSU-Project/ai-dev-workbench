@@ -79,7 +79,8 @@ flowchart LR
 | | **🧭 `AGENTS.md` & `llms.txt`** | Scans project structure to generate `AGENTS.md`, `CLAUDE.md`, and `llms.txt` |
 | | **📄 URL / HTML to Markdown** | Strips ads, scripts, and HTML tags into clean RAG-ready Markdown |
 | | **✂️ Chunk Visualizer** | Visualizes `chunk_size` & `chunk_overlap` with mid-sentence truncation warnings |
-| **Data & Schema** | **📐 Type to JSON Schema** | Converts TypeScript interfaces & Python Pydantic models to OpenAI Strict JSON Schema |
+| **Data & Schema** | **🔄 Encoding & Format Converter** | Converts `UTF-8` ↔ `UTF-8 with BOM (Excel Safe)` ↔ `TIS-620/CP874` ↔ `UTF-16`, repairs Thai Mojibake, & converts `CSV` ↔ `TSV`/`XLSX`/`JSONL`/`SQL` |
+| | **📐 Type to JSON Schema** | Converts TypeScript interfaces & Python Pydantic models to OpenAI Strict JSON Schema |
 | | **✅ Schema Output Validator** | Validates LLM JSON responses against JSON Schema + builds Self-Correction Prompts |
 | | **🔧 Broken JSON Repair** | Repairs truncated streaming JSON, unclosed quotes, trailing commas, and Python booleans |
 | | **📋 JSONL Table Viewer** | Parses and validates `.jsonl` fine-tuning & batch files into an interactive table |

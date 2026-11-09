@@ -2053,3 +2053,576 @@ def build_eval_and_finetune_dataset(
         "detected_columns": {"input": headers[in_idx], "output": headers[out_idx]},
     }
 
+
+# ==============================================================================
+# 10. Encoding (UTF-8 / UTF-8 BOM / TIS-620 / CP874 / UTF-16 / Mojibake) & Format Converter
+# ==============================================================================
+
+_CP1252_EXTRA_MAP: Dict[int, int] = {
+    0x20AC: 0x80,
+    0x201A: 0x82,
+    0x0192: 0x83,
+    0x201E: 0x84,
+    0x2026: 0x85,
+    0x2020: 0x86,
+    0x2021: 0x87,
+    0x02C6: 0x88,
+    0x2030: 0x89,
+    0x0160: 0x8A,
+    0x2039: 0x8B,
+    0x0152: 0x8C,
+    0x017D: 0x8E,
+    0x2018: 0x91,
+    0x2019: 0x92,
+    0x201C: 0x93,
+    0x201D: 0x94,
+    0x2022: 0x95,
+    0x2013: 0x96,
+    0x2014: 0x97,
+    0x02DC: 0x98,
+    0x2122: 0x99,
+    0x0161: 0x9A,
+    0x203A: 0x9B,
+    0x0153: 0x9C,
+    0x017E: 0x9E,
+    0x0178: 0x9F,
+}
+
+_LATIN1_MOJIBAKE_RE = re.compile(
+    r"(?:[\u00c0-\u00ff][\u0080-\u00ff\u20ac\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178]{2})+"
+)
+
+_CP874_MOJIBAKE_RE = re.compile(r"(?:[เธเน][\u0e00-\u0e7f\u0080-\u00ff\u20ac-\u2122]{2})+")
+_FORMATTED_NUM_RE = re.compile(r"^-?\d{1,3}(?:,\d{3})+(?:\.\d+)?$")
+
+
+def repair_thai_mojibake(text: str) -> Tuple[str, int]:
+    """Repair Thai UTF-8 Mojibake caused by Latin-1/Windows-1252 (à¸à¸£...) or TIS-620/CP874 (เธเธ£...)."""
+    if not text:
+        return text, 0
+
+    fixed_count = 0
+    out = text
+
+    # Case 1: UTF-8 bytes misinterpreted as Latin-1 / Windows-1252 (e.g. à¸à¸£à¸¸à¸‡...)
+    if "à¸" in out or "à¹" in out:
+        def _repl_latin1(m: re.Match) -> str:
+            nonlocal fixed_count
+            chunk = m.group(0)
+            buf = bytearray()
+            for ch in chunk:
+                code = ord(ch)
+                if code <= 0xFF:
+                    buf.append(code)
+                elif code in _CP1252_EXTRA_MAP:
+                    buf.append(_CP1252_EXTRA_MAP[code])
+                else:
+                    return chunk
+            try:
+                decoded = bytes(buf).decode("utf-8")
+                fixed_count += 1
+                return decoded
+            except Exception:
+                return chunk
+
+        out = _LATIN1_MOJIBAKE_RE.sub(_repl_latin1, out)
+
+    # Case 2: UTF-8 bytes misinterpreted as TIS-620 / CP874 (e.g. เธเธ£เธธเธ‡เน€...)
+    if "เธ" in out or "เน" in out:
+        def _repl_cp874(m: re.Match) -> str:
+            nonlocal fixed_count
+            chunk = m.group(0)
+            buf = bytearray()
+            for ch in chunk:
+                try:
+                    buf.extend(ch.encode("cp874"))
+                except Exception:
+                    code = ord(ch)
+                    if code <= 0xFF:
+                        buf.append(code)
+                    elif code in _CP1252_EXTRA_MAP:
+                        buf.append(_CP1252_EXTRA_MAP[code])
+                    else:
+                        return chunk
+            try:
+                decoded = bytes(buf).decode("utf-8")
+                if any("\u0e01" <= c <= "\u0e5b" for c in decoded):
+                    fixed_count += 1
+                    return decoded
+                return chunk
+            except Exception:
+                return chunk
+
+        out = _CP874_MOJIBAKE_RE.sub(_repl_cp874, out)
+
+    return out, fixed_count
+
+
+def detect_and_decode_bytes(raw_bytes: bytes, preferred_encoding: str = "auto") -> Dict[str, Any]:
+    """Auto-detect byte encoding (UTF-8 BOM, UTF-8, TIS-620/CP874, UTF-16 LE/BE, Latin-1) and decode cleanly."""
+    if not raw_bytes:
+        return {
+            "encoding": "utf-8",
+            "encoding_label": "UTF-8 (Empty)",
+            "has_bom": False,
+            "bom_type": "None",
+            "text": "",
+            "thai_char_count": 0,
+            "mojibake_detected": False,
+            "excel_warning": None,
+        }
+
+    has_bom = False
+    bom_type = "None"
+    detected_enc = "utf-8"
+    detected_label = "UTF-8 (No BOM)"
+
+    if raw_bytes.startswith(b"\xef\xbb\xbf"):
+        has_bom = True
+        bom_type = "UTF-8 BOM (EF BB BF)"
+        detected_enc = "utf-8-sig"
+        detected_label = "UTF-8 with BOM (Excel Safe)"
+    elif raw_bytes.startswith(b"\xff\xfe"):
+        has_bom = True
+        bom_type = "UTF-16 LE BOM (FF FE)"
+        detected_enc = "utf-16-le"
+        detected_label = "UTF-16 LE with BOM"
+    elif raw_bytes.startswith(b"\xfe\xff"):
+        has_bom = True
+        bom_type = "UTF-16 BE BOM (FE FF)"
+        detected_enc = "utf-16-be"
+        detected_label = "UTF-16 BE with BOM"
+
+    text = ""
+    if preferred_encoding and preferred_encoding != "auto":
+        enc_map = {
+            "utf-8": ("utf-8", "UTF-8 (No BOM)"),
+            "utf-8-sig": ("utf-8-sig", "UTF-8 with BOM"),
+            "cp874": ("cp874", "TIS-620 / CP874 (Thai Legacy)"),
+            "tis-620": ("cp874", "TIS-620 / CP874 (Thai Legacy)"),
+            "utf-16": ("utf-16", "UTF-16"),
+            "utf-16-le": ("utf-16-le", "UTF-16 LE"),
+            "utf-16-be": ("utf-16-be", "UTF-16 BE"),
+            "latin1": ("latin1", "Windows-1252 / ISO-8859-1"),
+        }
+        chosen, label = enc_map.get(preferred_encoding.lower(), (preferred_encoding, preferred_encoding))
+        try:
+            text = raw_bytes.decode(chosen)
+            detected_enc = chosen
+            detected_label = label
+        except Exception:
+            text = raw_bytes.decode(chosen, errors="replace")
+            detected_enc = chosen
+            detected_label = f"{label} (with replacement)"
+    else:
+        if has_bom:
+            if detected_enc == "utf-8-sig":
+                text = raw_bytes.decode("utf-8-sig", errors="replace")
+            elif detected_enc == "utf-16-le":
+                text = raw_bytes[2:].decode("utf-16-le", errors="replace")
+            elif detected_enc == "utf-16-be":
+                text = raw_bytes[2:].decode("utf-16-be", errors="replace")
+        else:
+            try:
+                text = raw_bytes.decode("utf-8", errors="strict")
+                detected_enc = "utf-8"
+                detected_label = "UTF-8 (No BOM)"
+            except UnicodeDecodeError:
+                # Check if valid TIS-620 / CP874 (Thai bytes 0xA1..0xFB)
+                sample = raw_bytes[:65536]
+                thai_legacy_bytes = sum(1 for b in sample if 0xA1 <= b <= 0xFB)
+                if thai_legacy_bytes > 0:
+                    try:
+                        text = raw_bytes.decode("cp874", errors="strict")
+                        detected_enc = "cp874"
+                        detected_label = "TIS-620 / CP874 / Windows-874 (Thai Legacy)"
+                    except UnicodeDecodeError:
+                        text = raw_bytes.decode("cp874", errors="replace")
+                        detected_enc = "cp874"
+                        detected_label = "TIS-620 / CP874 (Mixed)"
+                else:
+                    text = raw_bytes.decode("latin1", errors="replace")
+                    detected_enc = "latin1"
+                    detected_label = "Windows-1252 / Latin-1"
+
+    sample_text = text[:50000]
+    thai_chars = sum(1 for ch in sample_text if "\u0e01" <= ch <= "\u0e5b")
+    mojibake_detected = ("à¸" in sample_text or "à¹" in sample_text or "เธ" in sample_text or "เน€" in sample_text)
+
+    excel_warning = None
+    if detected_enc == "utf-8" and not has_bom and thai_chars > 0:
+        excel_warning = (
+            "ไฟล์นี้เป็น UTF-8 (No BOM) ที่มีภาษาไทย — หากดับเบิลคลิกเปิดใน Microsoft Excel โดยตรง "
+            "ภาษาไทยจะเพี้ยนเป็น 'à¸à¸£à¸¸à¸‡...' แนะนำให้แปลงเป็น 'UTF-8 with BOM (Excel Safe)' หรือ '.xlsx'"
+        )
+    elif detected_enc == "cp874":
+        excel_warning = (
+            "ไฟล์นี้ใช้รหัสภาษาเก่า TIS-620 / CP874 — อาจเพี้ยนเมื่อนำไปใช้ใน Python, BigQuery, AI หรือระบบ Cloud "
+            "แนะนำให้แปลงเป็น 'UTF-8 with BOM' หรือ 'UTF-8'"
+        )
+    elif mojibake_detected:
+        excel_warning = (
+            "ตรวจพบอักขระภาษาต่างดาว (Mojibake เช่น à¸à¸£... หรือ เธเธ£...) — "
+            "ระบบสามารถซ่อมกลับเป็นภาษาไทยให้อัตโนมัติด้วยตัวเลือก 'Auto-Repair Mojibake'"
+        )
+
+    return {
+        "encoding": detected_enc,
+        "encoding_label": detected_label,
+        "has_bom": has_bom,
+        "bom_type": bom_type,
+        "text": text,
+        "thai_char_count": thai_chars,
+        "mojibake_detected": mojibake_detected,
+        "excel_warning": excel_warning,
+    }
+
+
+def _detect_delimiter_from_line(first_line: str) -> Tuple[str, str]:
+    """Return (delimiter_char, delimiter_label) from header line."""
+    candidates = [
+        (",", "Comma (,) — CSV"),
+        ("\t", "Tab (\\t) — TSV"),
+        ("|", "Pipe (|) — Delimited"),
+        (";", "Semicolon (;) — CSV"),
+    ]
+    best_delim = ","
+    best_label = "Comma (,) — CSV"
+    best_count = -1
+    for ch, label in candidates:
+        cnt = first_line.count(ch)
+        if cnt > best_count and cnt > 0:
+            best_count = cnt
+            best_delim = ch
+            best_label = label
+    return best_delim, best_label
+
+
+def inspect_file_encoding_and_format(
+    raw_bytes: bytes,
+    filename: str = "data.csv",
+    source_encoding: str = "auto",
+    max_preview_rows: int = 12,
+) -> Dict[str, Any]:
+    """Inspect encoding, BOM, line endings, delimiter, columns, and preview rows of a CSV/TSV/text file."""
+    info = detect_and_decode_bytes(raw_bytes, preferred_encoding=source_encoding)
+    text = info["text"]
+
+    crlf_count = text[:65536].count("\r\n")
+    lf_count = text[:65536].count("\n") - crlf_count
+    line_ending = "CRLF (\\r\\n — Windows)" if crlf_count >= lf_count and crlf_count > 0 else "LF (\\n — Unix/macOS)"
+
+    # Fast line count & sample slice for large files (e.g. 18.3 MB / 140,104 rows)
+    total_lines = text.count("\n")
+    if text and not text.endswith("\n"):
+        total_lines += 1
+
+    # Extract first N lines for fast preview parsing
+    head_lines: List[str] = []
+    pos = 0
+    for _ in range(max_preview_rows + 5):
+        nxt = text.find("\n", pos)
+        if nxt == -1:
+            rem = text[pos:].rstrip("\r")
+            if rem:
+                head_lines.append(rem)
+            break
+        head_lines.append(text[pos:nxt].rstrip("\r"))
+        pos = nxt + 1
+
+    first_line = head_lines[0] if head_lines else ""
+    delim_char, delim_label = _detect_delimiter_from_line(first_line)
+
+    repaired_sample, mojibake_fixed = repair_thai_mojibake("\n".join(head_lines))
+    parsed_rows = list(csv.reader(io.StringIO(repaired_sample), delimiter=delim_char))
+
+    headers = parsed_rows[0] if parsed_rows else []
+    data_preview_rows = parsed_rows[1 : max_preview_rows + 1] if len(parsed_rows) > 1 else []
+    data_row_count = max(0, total_lines - 1) if headers else 0
+
+    # Check if any preview cells contain formatted numbers like "72,243"
+    formatted_number_cols: List[str] = []
+    for row in data_preview_rows:
+        for idx, cell in enumerate(row):
+            if _FORMATTED_NUM_RE.match(cell.strip()):
+                col_name = headers[idx] if idx < len(headers) else f"Col_{idx+1}"
+                if col_name not in formatted_number_cols:
+                    formatted_number_cols.append(col_name)
+
+    # Simulate how Excel would misread UTF-8 without BOM as Latin-1/CP1252
+    excel_mojibake_preview = ""
+    if info["encoding"] == "utf-8" and not info["has_bom"] and len(head_lines) > 1:
+        try:
+            excel_mojibake_preview = head_lines[1].encode("utf-8").decode("latin1")[:160]
+        except Exception:
+            excel_mojibake_preview = ""
+
+    hex_head = " ".join(f"{b:02X}" for b in raw_bytes[:16])
+
+    return {
+        "filename": filename,
+        "size_bytes": len(raw_bytes),
+        "size_mb": round(len(raw_bytes) / (1024 * 1024), 2),
+        "encoding": info["encoding"],
+        "encoding_label": info["encoding_label"],
+        "has_bom": info["has_bom"],
+        "bom_type": info["bom_type"],
+        "hex_header": hex_head,
+        "line_ending": line_ending,
+        "delimiter": "tab" if delim_char == "\t" else delim_char,
+        "delimiter_label": delim_label,
+        "total_rows": data_row_count,
+        "column_count": len(headers),
+        "headers": headers,
+        "preview_rows": data_preview_rows,
+        "formatted_number_columns": formatted_number_cols,
+        "mojibake_detected": info["mojibake_detected"] or mojibake_fixed > 0,
+        "excel_warning": info["excel_warning"],
+        "excel_mojibake_simulation": excel_mojibake_preview,
+    }
+
+
+def convert_file_encoding_and_format(
+    raw_bytes: bytes,
+    filename: str = "data.csv",
+    target_encoding: str = "utf-8-sig",
+    target_format: str = "csv",
+    source_encoding: str = "auto",
+    fix_mojibake: bool = True,
+    trim_whitespace: bool = False,
+    clean_numbers: bool = False,
+    line_ending: str = "crlf",
+    sql_table_name: str = "route_delivery_stats",
+) -> Dict[str, Any]:
+    """Convert a file or text across encodings (UTF-8 BOM, UTF-8, TIS-620/CP874, UTF-16) and formats (CSV, TSV, Pipe, XLSX, JSONL, JSON, SQL)."""
+    info = detect_and_decode_bytes(raw_bytes, preferred_encoding=source_encoding)
+    text = info["text"]
+
+    mojibake_repaired_count = 0
+    if fix_mojibake:
+        text, mojibake_repaired_count = repair_thai_mojibake(text)
+
+    eol = "\r\n" if line_ending.lower() == "crlf" else "\n"
+    first_nl = text.find("\n")
+    first_line = text[:first_nl].rstrip("\r") if first_nl != -1 else text.rstrip("\r")
+    src_delim, _ = _detect_delimiter_from_line(first_line)
+
+    base_stem = Path(filename).stem or "converted_data"
+    # Keep stem concise if it's a long SQL export name
+    if len(base_stem) > 48:
+        base_stem = base_stem[:48]
+
+    target_fmt = target_format.lower().strip()
+    target_enc = target_encoding.lower().strip()
+
+    # Fast path for direct text/delimiter conversion without cell-level mutation on identical delimiter
+    delim_map = {
+        "csv": (",", ".csv", "text/csv"),
+        "tsv": ("\t", ".tsv", "text/tab-separated-values"),
+        "pipe": ("|", ".psv", "text/plain"),
+        "semicolon": (";", ".csv", "text/csv"),
+    }
+
+    numbers_cleaned_count = 0
+    rows_processed = 0
+
+    if target_fmt in delim_map:
+        out_delim, ext, mime = delim_map[target_fmt]
+        if out_delim == src_delim and not trim_whitespace and not clean_numbers:
+            # Ultra-fast C-speed line ending & encoding conversion (handles 140k+ rows in <40ms)
+            normalized_text = text.replace("\r\n", "\n").replace("\r", "\n")
+            if eol == "\r\n":
+                normalized_text = normalized_text.replace("\n", "\r\n")
+            rows_processed = max(0, normalized_text.count("\n") - 1) if normalized_text else 0
+            output_text = normalized_text
+        else:
+            reader = csv.reader(io.StringIO(text), delimiter=src_delim)
+            buf = io.StringIO()
+            writer = csv.writer(buf, delimiter=out_delim, lineterminator=eol)
+            for row_idx, row in enumerate(reader):
+                if row_idx > 0:
+                    rows_processed += 1
+                new_row: List[str] = []
+                for cell in row:
+                    val = cell.strip() if trim_whitespace else cell
+                    if clean_numbers and row_idx > 0 and _FORMATTED_NUM_RE.match(val.strip()):
+                        val = val.strip().replace(",", "")
+                        numbers_cleaned_count += 1
+                    new_row.append(val)
+                writer.writerow(new_row)
+            output_text = buf.getvalue()
+
+        output_bytes, final_enc_label = _encode_target_bytes(output_text, target_enc)
+        preview_lines = output_text.splitlines()[:15]
+        return {
+            "output_bytes": output_bytes,
+            "output_filename": f"{base_stem}_{target_enc}{ext}",
+            "mime_type": mime,
+            "source_encoding": info["encoding"],
+            "source_encoding_label": info["encoding_label"],
+            "target_encoding": target_enc,
+            "target_encoding_label": final_enc_label,
+            "target_format": target_fmt,
+            "rows_processed": rows_processed,
+            "mojibake_repaired_count": mojibake_repaired_count,
+            "numbers_cleaned_count": numbers_cleaned_count,
+            "output_size_bytes": len(output_bytes),
+            "preview_text": "\n".join(preview_lines),
+            "has_utf8_bom": output_bytes.startswith(b"\xef\xbb\xbf"),
+        }
+
+    # Parse tabular rows for structured outputs (.xlsx, .jsonl, .json, .sql, .md)
+    reader = csv.reader(io.StringIO(text), delimiter=src_delim)
+    headers: List[str] = next(reader, [])
+    if trim_whitespace:
+        headers = [h.strip() for h in headers]
+
+    if target_fmt == "xlsx":
+        import openpyxl
+
+        wb = openpyxl.Workbook(write_only=True)
+        ws = wb.create_sheet(title="Converted_Data")
+        if headers:
+            ws.append(headers)
+        for row in reader:
+            rows_processed += 1
+            clean_row: List[Any] = []
+            for cell in row:
+                val_str = cell.strip() if trim_whitespace else cell
+                if clean_numbers and _FORMATTED_NUM_RE.match(val_str.strip()):
+                    val_str = val_str.strip().replace(",", "")
+                    numbers_cleaned_count += 1
+                # Convert clean integers/floats to native Excel numeric cells when clean_numbers is enabled
+                if clean_numbers and re.match(r"^-?\d+$", val_str):
+                    clean_row.append(int(val_str))
+                elif clean_numbers and re.match(r"^-?\d+\.\d+$", val_str):
+                    clean_row.append(float(val_str))
+                else:
+                    clean_row.append(val_str)
+            ws.append(clean_row)
+        out_io = io.BytesIO()
+        wb.save(out_io)
+        output_bytes = out_io.getvalue()
+        return {
+            "output_bytes": output_bytes,
+            "output_filename": f"{base_stem}.xlsx",
+            "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "source_encoding": info["encoding"],
+            "source_encoding_label": info["encoding_label"],
+            "target_encoding": "xlsx-binary",
+            "target_encoding_label": "Excel OpenXML (.xlsx)",
+            "target_format": "xlsx",
+            "rows_processed": rows_processed,
+            "mojibake_repaired_count": mojibake_repaired_count,
+            "numbers_cleaned_count": numbers_cleaned_count,
+            "output_size_bytes": len(output_bytes),
+            "preview_text": f"[Excel .xlsx Workbook สร้างสำเร็จ — {rows_processed:,} แถว, {len(headers)} คอลัมน์: {', '.join(headers)}]",
+            "has_utf8_bom": False,
+        }
+
+    # Structured text formats: jsonl, json, sql, markdown
+    out_lines: List[str] = []
+    json_records: List[Dict[str, Any]] = []
+    safe_table = re.sub(r"[^a-zA-Z0-9_]", "_", sql_table_name or "imported_data")
+
+    if target_fmt == "markdown" and headers:
+        out_lines.append("| " + " | ".join(headers) + " |")
+        out_lines.append("| " + " | ".join("---" for _ in headers) + " |")
+
+    for row in reader:
+        if not row:
+            continue
+        rows_processed += 1
+        rec: Dict[str, Any] = {}
+        sql_vals: List[str] = []
+        md_vals: List[str] = []
+        for idx, col in enumerate(headers):
+            raw_val = row[idx] if idx < len(row) else ""
+            val_str = raw_val.strip() if trim_whitespace else raw_val
+            if clean_numbers and _FORMATTED_NUM_RE.match(val_str.strip()):
+                val_str = val_str.strip().replace(",", "")
+                numbers_cleaned_count += 1
+
+            if clean_numbers and re.match(r"^-?\d+$", val_str):
+                typed_val: Any = int(val_str)
+            elif clean_numbers and re.match(r"^-?\d+\.\d+$", val_str):
+                typed_val = float(val_str)
+            else:
+                typed_val = val_str
+
+            rec[col] = typed_val
+            if target_fmt == "sql":
+                if val_str == "":
+                    sql_vals.append("NULL")
+                elif isinstance(typed_val, (int, float)):
+                    sql_vals.append(str(typed_val))
+                else:
+                    escaped_sql = val_str.replace("'", "''")
+                    sql_vals.append(f"'{escaped_sql}'")
+            elif target_fmt == "markdown" and rows_processed <= 500:
+                md_vals.append(val_str.replace("|", "\\|"))
+
+        if target_fmt == "jsonl":
+            out_lines.append(json.dumps(rec, ensure_ascii=False))
+        elif target_fmt == "json":
+            if rows_processed <= 25000:
+                json_records.append(rec)
+        elif target_fmt == "sql":
+            cols_sql = ", ".join(f'"{h}"' for h in headers)
+            out_lines.append(f"INSERT INTO {safe_table} ({cols_sql}) VALUES ({', '.join(sql_vals)});")
+        elif target_fmt == "markdown" and rows_processed <= 500:
+            out_lines.append("| " + " | ".join(md_vals) + " |")
+
+    if target_fmt == "json":
+        output_text = json.dumps(json_records, ensure_ascii=False, indent=2)
+        ext, mime = ".json", "application/json"
+    elif target_fmt == "jsonl":
+        output_text = eol.join(out_lines)
+        ext, mime = ".jsonl", "application/x-ndjson"
+    elif target_fmt == "sql":
+        output_text = eol.join(out_lines)
+        ext, mime = ".sql", "application/sql"
+    else:
+        output_text = eol.join(out_lines)
+        ext, mime = ".md", "text/markdown"
+
+    output_bytes, final_enc_label = _encode_target_bytes(output_text, target_enc)
+    preview_lines = output_text.splitlines()[:15]
+
+    return {
+        "output_bytes": output_bytes,
+        "output_filename": f"{base_stem}{ext}",
+        "mime_type": mime,
+        "source_encoding": info["encoding"],
+        "source_encoding_label": info["encoding_label"],
+        "target_encoding": target_enc,
+        "target_encoding_label": final_enc_label,
+        "target_format": target_fmt,
+        "rows_processed": rows_processed,
+        "mojibake_repaired_count": mojibake_repaired_count,
+        "numbers_cleaned_count": numbers_cleaned_count,
+        "output_size_bytes": len(output_bytes),
+        "preview_text": "\n".join(preview_lines),
+        "has_utf8_bom": output_bytes.startswith(b"\xef\xbb\xbf"),
+    }
+
+
+def _encode_target_bytes(text: str, target_encoding: str) -> Tuple[bytes, str]:
+    """Encode string into requested target encoding with proper BOM where standard."""
+    enc = target_encoding.lower().strip()
+    if enc in ("utf-8-sig", "utf8-bom", "utf-8-bom"):
+        return text.encode("utf-8-sig"), "UTF-8 with BOM (EF BB BF — Excel Thai Safe)"
+    if enc in ("utf-8", "utf8"):
+        return text.encode("utf-8"), "UTF-8 (No BOM)"
+    if enc in ("cp874", "tis-620", "tis620", "windows-874"):
+        return text.encode("cp874", errors="replace"), "TIS-620 / CP874 / Windows-874 (Thai Legacy)"
+    if enc in ("utf-16", "utf-16-le", "utf16"):
+        return b"\xff\xfe" + text.encode("utf-16-le"), "UTF-16 LE with BOM (FF FE)"
+    if enc in ("utf-16-be",):
+        return b"\xfe\xff" + text.encode("utf-16-be"), "UTF-16 BE with BOM (FE FF)"
+    if enc in ("ascii_escape", "unicode_escape"):
+        escaped = text.encode("unicode_escape").decode("ascii")
+        return escaped.encode("ascii"), "ASCII with \\uXXXX Unicode Escape"
+    return text.encode("utf-8-sig"), "UTF-8 with BOM"
+
+

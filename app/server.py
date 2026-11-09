@@ -23,6 +23,7 @@ from app.ai_tools import (
     calculate_image_tokens,
     compress_json_for_llm,
     compress_logs_and_stacktrace,
+    convert_file_encoding_and_format,
     convert_function_to_tool_schemas,
     convert_type_to_json_schema,
     diff_prompts,
@@ -30,6 +31,7 @@ from app.ai_tools import (
     flatten_repo_to_prompt,
     generate_agents_md_and_llms_txt,
     html_or_url_to_clean_markdown,
+    inspect_file_encoding_and_format,
     inspect_mcp_server,
     parse_and_validate_jsonl,
     reconstruct_sse_stream,
@@ -731,6 +733,158 @@ def api_tool_eval_dataset(req: EvalDatasetPayload) -> Dict[str, Any]:
     )
 
 
+CONVERTER_SOURCE_CACHE: Dict[str, Tuple[bytes, str]] = {}
+
+_WORKSPACE_CSV_NAME = "_SELECT_d_routeid_TRIM_r_desc_AS_route_name_TRIM_p_t_provincenam_202611091738.csv"
+_FALLBACK_ROUTE_CSV = (
+    '"routeid","route_name","province_name","amphur_name","district_name","road","soi","zipcode","delivery_count"\r\n'
+    '1,L1,กรุงเทพมหานคร,บางคอแหลม,บางโคล่,พระรามที่ 3,,"10120","72,243"\r\n'
+    '1,L1,กรุงเทพมหานคร,บางรัก,สีลม,สาทรเหนือ,,"10500","64,785"\r\n'
+    '1,L1,กรุงเทพมหานคร,บางรัก,สีลม,สีลม,,"10500","29,514"\r\n'
+    '1,L1,กรุงเทพมหานคร,สาทร,ทุ่งมหาเมฆ,สาทรใต้,,"10120","19,289"\r\n'
+    '1,L1,กรุงเทพมหานคร,บางคอแหลม,บางโคล่,พระราม 3,,"10120","14,261"\r\n'
+)
+
+
+def _get_workspace_test_csv() -> Tuple[bytes, str]:
+    """Load the user's test CSV file from workspace (or fallback sample if running in cloud CI)."""
+    if "workspace_csv" in CONVERTER_SOURCE_CACHE:
+        return CONVERTER_SOURCE_CACHE["workspace_csv"]
+    root_dir = Path(__file__).resolve().parents[1]
+    candidate = root_dir / _WORKSPACE_CSV_NAME
+    if candidate.exists():
+        raw = candidate.read_bytes()
+        CONVERTER_SOURCE_CACHE["workspace_csv"] = (raw, candidate.name)
+        CONVERTER_SOURCE_CACHE["latest"] = (raw, candidate.name)
+        return raw, candidate.name
+    # Check any other .csv in workspace root
+    csv_files = sorted(root_dir.glob("*.csv"), key=lambda p: p.stat().st_size, reverse=True)
+    if csv_files:
+        raw = csv_files[0].read_bytes()
+        CONVERTER_SOURCE_CACHE["workspace_csv"] = (raw, csv_files[0].name)
+        CONVERTER_SOURCE_CACHE["latest"] = (raw, csv_files[0].name)
+        return raw, csv_files[0].name
+    raw = _FALLBACK_ROUTE_CSV.encode("utf-8")
+    CONVERTER_SOURCE_CACHE["workspace_csv"] = (raw, _WORKSPACE_CSV_NAME)
+    CONVERTER_SOURCE_CACHE["latest"] = (raw, _WORKSPACE_CSV_NAME)
+    return raw, _WORKSPACE_CSV_NAME
+
+
+@app.post("/api/tools/format-converter/inspect")
+async def api_tool_format_converter_inspect(
+    file: Optional[UploadFile] = File(default=None),
+    use_workspace_csv: str = Form(default="false"),
+    raw_text: str = Form(default=""),
+    source_encoding: str = Form(default="auto"),
+) -> Dict[str, Any]:
+    t0 = time.perf_counter()
+    if use_workspace_csv.lower() == "true":
+        raw_bytes, filename = _get_workspace_test_csv()
+    elif file is not None and file.filename:
+        raw_bytes = await file.read()
+        filename = file.filename
+        CONVERTER_SOURCE_CACHE["latest"] = (raw_bytes, filename)
+    elif raw_text.strip():
+        raw_bytes = raw_text.encode("utf-8")
+        filename = "pasted_data.csv"
+        CONVERTER_SOURCE_CACHE["latest"] = (raw_bytes, filename)
+    elif "latest" in CONVERTER_SOURCE_CACHE:
+        raw_bytes, filename = CONVERTER_SOURCE_CACHE["latest"]
+    else:
+        raw_bytes, filename = _get_workspace_test_csv()
+
+    res = inspect_file_encoding_and_format(raw_bytes, filename=filename, source_encoding=source_encoding)
+    res["elapsed_ms"] = round((time.perf_counter() - t0) * 1000, 2)
+    return res
+
+
+@app.post("/api/tools/format-converter/convert")
+async def api_tool_format_converter_convert(
+    file: Optional[UploadFile] = File(default=None),
+    use_workspace_csv: str = Form(default="false"),
+    raw_text: str = Form(default=""),
+    source_encoding: str = Form(default="auto"),
+    target_encoding: str = Form(default="utf-8-sig"),
+    target_format: str = Form(default="csv"),
+    fix_mojibake: str = Form(default="true"),
+    trim_whitespace: str = Form(default="false"),
+    clean_numbers: str = Form(default="false"),
+    line_ending: str = Form(default="crlf"),
+    sql_table_name: str = Form(default="route_delivery_stats"),
+) -> Dict[str, Any]:
+    t0 = time.perf_counter()
+    if use_workspace_csv.lower() == "true":
+        raw_bytes, filename = _get_workspace_test_csv()
+    elif file is not None and file.filename:
+        raw_bytes = await file.read()
+        filename = file.filename
+        CONVERTER_SOURCE_CACHE["latest"] = (raw_bytes, filename)
+    elif raw_text.strip():
+        raw_bytes = raw_text.encode("utf-8")
+        filename = "pasted_data.csv"
+        CONVERTER_SOURCE_CACHE["latest"] = (raw_bytes, filename)
+    elif "latest" in CONVERTER_SOURCE_CACHE:
+        raw_bytes, filename = CONVERTER_SOURCE_CACHE["latest"]
+    else:
+        raw_bytes, filename = _get_workspace_test_csv()
+
+    conv = convert_file_encoding_and_format(
+        raw_bytes=raw_bytes,
+        filename=filename,
+        target_encoding=target_encoding,
+        target_format=target_format,
+        source_encoding=source_encoding,
+        fix_mojibake=(fix_mojibake.lower() == "true"),
+        trim_whitespace=(trim_whitespace.lower() == "true"),
+        clean_numbers=(clean_numbers.lower() == "true"),
+        line_ending=line_ending,
+        sql_table_name=sql_table_name,
+    )
+
+    job_id = str(uuid.uuid4())
+    JOB_STORE[job_id] = {
+        "bytes": conv["output_bytes"],
+        "filename": conv["output_filename"],
+        "mime_type": conv["mime_type"],
+        "token_map": {},
+    }
+
+    return {
+        "job_id": job_id,
+        "download_url": f"/api/tools/format-converter/download/{job_id}",
+        "output_filename": conv["output_filename"],
+        "mime_type": conv["mime_type"],
+        "source_encoding": conv["source_encoding"],
+        "source_encoding_label": conv["source_encoding_label"],
+        "target_encoding": conv["target_encoding"],
+        "target_encoding_label": conv["target_encoding_label"],
+        "target_format": conv["target_format"],
+        "rows_processed": conv["rows_processed"],
+        "mojibake_repaired_count": conv["mojibake_repaired_count"],
+        "numbers_cleaned_count": conv["numbers_cleaned_count"],
+        "output_size_bytes": conv["output_size_bytes"],
+        "output_size_mb": round(conv["output_size_bytes"] / (1024 * 1024), 2),
+        "has_utf8_bom": conv["has_utf8_bom"],
+        "preview_text": conv["preview_text"],
+        "elapsed_ms": round((time.perf_counter() - t0) * 1000, 2),
+    }
+
+
+@app.get("/api/tools/format-converter/download/{job_id}")
+def api_tool_format_converter_download(job_id: str) -> Response:
+    if job_id not in JOB_STORE:
+        raise HTTPException(status_code=404, detail="Converted file job not found or expired.")
+    job = JOB_STORE[job_id]
+    media_type = job.get("mime_type") or "application/octet-stream"
+    return Response(
+        content=job["bytes"],
+        media_type=media_type,
+        headers={
+            "Content-Disposition": _build_content_disposition(job["filename"]),
+        },
+    )
+
+
 @app.post("/api/system/clear-cache")
 def api_system_clear_cache() -> Dict[str, Any]:
     with engine._cache_lock:
@@ -1154,6 +1308,31 @@ def api_system_self_test() -> Dict[str, Any]:
                 fmt="openai_jsonl",
                 mask_pii=True,
                 mask_engine=engine,
+            )
+        ),
+    )
+    _run_check(
+        "Data & Schema",
+        "Encoding & Format Converter (UTF-8 BOM / TIS-620 / Mojibake / Clean Numbers)",
+        lambda: (
+            lambda r: (
+                assert_true(
+                    r["has_utf8_bom"]
+                    and r["rows_processed"] >= 1
+                    and "กรุงเทพมหานคร" in r["preview_text"]
+                    and "72243" in r["preview_text"],
+                    "Format converter failed",
+                ),
+                f"Converted {r['rows_processed']} rows to {r['target_encoding']} ({r['target_format']}) & cleaned numbers",
+            )[-1]
+        )(
+            convert_file_encoding_and_format(
+                'routeid,province_name,delivery_count\r\n1,à¸à¸£à¸¸à¸‡à¹€à¸—à¸žà¸¡à¸«à¸²à¸™à¸„à¸£,"72,243"\r\n'.encode("utf-8"),
+                filename="test_route.csv",
+                target_encoding="utf-8-sig",
+                target_format="tsv",
+                fix_mojibake=True,
+                clean_numbers=True,
             )
         ),
     )

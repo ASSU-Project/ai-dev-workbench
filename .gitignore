@@ -21,3 +21,5 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+_SELECT_*.csv
+

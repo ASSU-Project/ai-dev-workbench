@@ -1322,6 +1322,128 @@ async function runEvalDatasetBuilder() {
   ).textContent = `🗂️ สร้าง ${data.row_count} แถว • ล้าง PII อัตโนมัติ ${data.pii_masked_count} จุด`;
 }
 
+// 10. Encoding (UTF-8 BOM / TIS-620 / Mojibake) & File Format Converter
+async function inspectFormatConverter(options = {}) {
+  const form = new FormData();
+  const fileInput = document.getElementById("fmtConverterFileInput");
+  const rawText = (document.getElementById("fmtRawTextInput")?.value || "").trim();
+  const sourceEnc = document.getElementById("fmtSourceEncodingSelect")?.value || "auto";
+  form.append("source_encoding", sourceEnc);
+
+  if (options.useWorkspaceCsv) {
+    form.append("use_workspace_csv", "true");
+    state.fmtConverterSourceMode = "workspace_csv";
+  } else if (fileInput && fileInput.files && fileInput.files[0] && !options.useRawText) {
+    form.append("file", fileInput.files[0]);
+    state.fmtConverterSourceMode = "file";
+  } else if (rawText) {
+    form.append("raw_text", rawText);
+    state.fmtConverterSourceMode = "raw_text";
+  } else if (state.fmtConverterSourceMode === "workspace_csv") {
+    form.append("use_workspace_csv", "true");
+  }
+
+  const resp = await fetch("/api/tools/format-converter/inspect", {
+    method: "POST",
+    body: form,
+  });
+  if (!resp.ok) return;
+  const info = await resp.json();
+
+  document.getElementById("fmtDiagFilename").textContent = `📄 ${info.filename} (${info.size_mb} MB)`;
+  document.getElementById("fmtDiagEncoding").textContent = `🔤 ${info.encoding_label}`;
+  document.getElementById("fmtDiagBom").textContent = `BOM: ${info.bom_type}`;
+  document.getElementById("fmtDiagRows").textContent = `📊 ${(info.total_rows || 0).toLocaleString()} แถว × ${info.column_count} คอลัมน์`;
+  document.getElementById("fmtDiagDelimiter").textContent = `ตัวคั่น: ${info.delimiter_label} • ${info.line_ending}`;
+  document.getElementById("fmtDiagHex").textContent = `Hex: ${info.hex_header}`;
+
+  const warnBanner = document.getElementById("fmtExcelWarningBanner");
+  if (warnBanner) {
+    if (info.excel_warning) {
+      warnBanner.style.display = "block";
+      let simHtml = "";
+      if (info.excel_mojibake_simulation) {
+        simHtml = `<div style="margin-top:4px; font-size:12px; color:#b45309;"><strong>ตัวอย่างเมื่อเปิดใน Excel โดยไม่มี BOM:</strong> <code>${escapeHtml(
+          info.excel_mojibake_simulation
+        )}</code></div>`;
+      }
+      warnBanner.innerHTML = `<strong>⚠️ คำแนะนำความเข้ากันได้:</strong> ${escapeHtml(info.excel_warning)}${simHtml}`;
+    } else {
+      warnBanner.style.display = "none";
+    }
+  }
+
+  // Render preview table
+  const tableContainer = document.getElementById("fmtPreviewTableContainer");
+  if (tableContainer) {
+    const headers = info.headers || [];
+    const rows = info.preview_rows || [];
+    if (!headers.length) {
+      tableContainer.innerHTML = '<div class="empty-cell">ไม่พบข้อมูลตาราง</div>';
+    } else {
+      const ths = headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("");
+      const trs = rows
+        .map(
+          (r) =>
+            `<tr>${headers
+              .map((_, idx) => `<td>${escapeHtml(r[idx] !== undefined ? String(r[idx]) : "")}</td>`)
+              .join("")}</tr>`
+        )
+        .join("");
+      tableContainer.innerHTML = `<table class="data-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+    }
+  }
+}
+
+async function runFormatConverter(options = {}) {
+  const form = new FormData();
+  const fileInput = document.getElementById("fmtConverterFileInput");
+  const rawText = (document.getElementById("fmtRawTextInput")?.value || "").trim();
+
+  if (options.useWorkspaceCsv || (state.fmtConverterSourceMode === "workspace_csv" && !rawText)) {
+    form.append("use_workspace_csv", "true");
+  } else if (rawText && (options.useRawText || state.fmtConverterSourceMode === "raw_text")) {
+    form.append("raw_text", rawText);
+  } else if (fileInput && fileInput.files && fileInput.files[0]) {
+    form.append("file", fileInput.files[0]);
+  } else if (rawText) {
+    form.append("raw_text", rawText);
+  }
+
+  form.append("source_encoding", document.getElementById("fmtSourceEncodingSelect")?.value || "auto");
+  form.append("target_encoding", document.getElementById("fmtTargetEncodingSelect")?.value || "utf-8-sig");
+  form.append("target_format", document.getElementById("fmtTargetFormatSelect")?.value || "csv");
+  form.append("line_ending", document.getElementById("fmtLineEndingSelect")?.value || "crlf");
+  form.append("sql_table_name", document.getElementById("fmtSqlTableInput")?.value || "route_delivery_stats");
+  form.append("fix_mojibake", String(Boolean(document.getElementById("fmtFixMojibakeCheck")?.checked)));
+  form.append("clean_numbers", String(Boolean(document.getElementById("fmtCleanNumbersCheck")?.checked)));
+  form.append("trim_whitespace", String(Boolean(document.getElementById("fmtTrimWhitespaceCheck")?.checked)));
+
+  const badge = document.getElementById("fmtConvertResultBadge");
+  if (badge) badge.textContent = "⏳ กำลังแปลงรหัสภาษาและรูปแบบไฟล์...";
+
+  const resp = await fetch("/api/tools/format-converter/convert", {
+    method: "POST",
+    body: form,
+  });
+  if (!resp.ok) return;
+  const data = await resp.json();
+
+  state.lastConverterJobId = data.job_id;
+  state.lastConverterFilename = data.output_filename;
+
+  document.getElementById("fmtConvertedPreviewOutput").value = data.preview_text || "";
+  if (badge) {
+    badge.textContent = `✅ แปลง ${(data.rows_processed || 0).toLocaleString()} แถว → ${data.target_encoding_label} (${data.output_size_mb} MB • ${data.elapsed_ms} ms)`;
+  }
+
+  const dlBtn = document.getElementById("btnDownloadConvertedFile");
+  if (dlBtn) {
+    dlBtn.disabled = false;
+    dlBtn.textContent = `💾 ดาวน์โหลด ${data.output_filename}`;
+  }
+}
+
 function resizeAndDownloadUploadedImage(targetW, targetH) {
   if (!state.uploadedImageObj) {
     alert("กรุณากดปุ่ม '📂 เลือกรูปภาพ (.png / .jpg / .webp)' ด้านบนก่อน เพื่อย่อและดาวน์โหลดรูปจริง");
@@ -2284,4 +2406,58 @@ data: [DONE]`;
     if (!content) return;
     downloadBlob(content, "ai_eval_dataset.jsonl", "application/jsonl;charset=utf-8");
   });
+
+  // 10. Encoding & Format Converter Event Wiring
+  document.getElementById("btnLoadWorkspaceCsv").addEventListener("click", async () => {
+    const rawInp = document.getElementById("fmtRawTextInput");
+    if (rawInp) rawInp.value = "";
+    const fileInp = document.getElementById("fmtConverterFileInput");
+    if (fileInp) fileInp.value = "";
+    await inspectFormatConverter({ useWorkspaceCsv: true });
+    await runFormatConverter({ useWorkspaceCsv: true });
+  });
+
+  document.getElementById("btnLoadMojibakeSample").addEventListener("click", async () => {
+    const rawInp = document.getElementById("fmtRawTextInput");
+    if (rawInp) {
+      rawInp.value = `"routeid","route_name","province_name","amphur_name","district_name","road","zipcode","delivery_count"
+1,L1,à¸à¸£à¸¸à¸‡à¹€à¸—à¸žà¸¡à¸«à¸²à¸™à¸„à¸£,à¸šà¸²à¸‡à¸„à¸­à¹à¸«à¸¥à¸¡,à¸šà¸²à¸‡à¹‚à¸„à¸¥à¹ˆ,à¸žà¸£à¸°à¸£à¸²à¸¡à¸—à¸µà¹ˆ 3,"10120","72,243"
+1,L1,เธเธฃเธธเธ‡เน€เธ—เธžเธกเธซเธฒเธ™เธ„เธฃ,เธเธฒเธเธฃเธ±เธ,เธªเธตเธฅเธก,เธªเธฒเธ—เธฃเน€เธซเธ™เธทเธญ,"10500","64,785"`;
+    }
+    document.getElementById("fmtFixMojibakeCheck").checked = true;
+    await inspectFormatConverter({ useRawText: true });
+    await runFormatConverter({ useRawText: true });
+  });
+
+  document.getElementById("fmtConverterFileInput").addEventListener("change", async () => {
+    const rawInp = document.getElementById("fmtRawTextInput");
+    if (rawInp) rawInp.value = "";
+    await inspectFormatConverter({ useRawText: false });
+    await runFormatConverter({ useRawText: false });
+  });
+
+  document.getElementById("fmtSourceEncodingSelect").addEventListener("change", async () => {
+    await inspectFormatConverter({});
+    await runFormatConverter({});
+  });
+
+  document.getElementById("btnRunFormatConvert").addEventListener("click", () => runFormatConverter({}));
+  document.getElementById("fmtTargetEncodingSelect").addEventListener("change", () => runFormatConverter({}));
+  document.getElementById("fmtTargetFormatSelect").addEventListener("change", () => runFormatConverter({}));
+  document.getElementById("fmtLineEndingSelect").addEventListener("change", () => runFormatConverter({}));
+  document.getElementById("fmtFixMojibakeCheck").addEventListener("change", () => runFormatConverter({}));
+  document.getElementById("fmtCleanNumbersCheck").addEventListener("change", () => runFormatConverter({}));
+  document.getElementById("fmtTrimWhitespaceCheck").addEventListener("change", () => runFormatConverter({}));
+
+  document.getElementById("btnCopyConvertedPreview").addEventListener("click", () => {
+    navigator.clipboard.writeText(document.getElementById("fmtConvertedPreviewOutput").value || "");
+  });
+
+  document.getElementById("btnDownloadConvertedFile").addEventListener("click", async (e) => {
+    if (!state.lastConverterJobId) return;
+    await downloadExcelJob(state.lastConverterJobId, state.lastConverterFilename, e.currentTarget);
+  });
+
+  // Auto-inspect and convert the workspace CSV test file on startup so the view is immediately populated
+  inspectFormatConverter({ useWorkspaceCsv: true }).then(() => runFormatConverter({ useWorkspaceCsv: true }));
 });

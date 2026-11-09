@@ -77,6 +77,10 @@
 
         <!-- Group 2: Data & Schema -->
         <div class="nav-group-label">Data &amp; Schema</div>
+        <button type="button" class="nav-item" data-view="view-format-converter" data-title="Encoding (UTF-8 BOM / TIS-620) &amp; File Format Converter" data-desc="ตรวจจับและแปลงรหัสภาษา (UTF-8 BOM สำหรับ Excel, UTF-8, TIS-620/CP874, UTF-16, ซ่อมภาษาต่างดาว Mojibake) และแปลงไฟล์ CSV ↔ TSV / Pipe / XLSX / JSONL / SQL">
+          <span class="nav-icon">🔄</span>
+          <span class="nav-text">Encoding &amp; Format Converter</span>
+        </button>
         <button type="button" class="nav-item" data-view="view-type-schema" data-title="Type / Interface to JSON Schema" data-desc="แปลง TypeScript Interface, Python Pydantic หรือ Zod ให้เป็น JSON Schema มาตรฐาน">
           <span class="nav-icon">📐</span>
           <span class="nav-text">Type to JSON Schema</span>
@@ -1358,6 +1362,147 @@
                 </div>
               </div>
               <textarea id="evalDatasetJsonlOutput" class="code-textarea output-readonly" style="min-height:290px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             NEW TOOL 10: ENCODING (UTF-8 BOM / TIS-620 / MOJIBAKE) & FILE FORMAT CONVERTER
+             ================================================================ -->
+        <section id="view-format-converter" class="tool-view">
+          <div class="editor-card" style="margin-bottom:14px;">
+            <div class="card-header">
+              <div>
+                <h4>1. เลือกไฟล์ต้นฉบับ หรือโหลดไฟล์ CSV ทดสอบ (140,104 แถว)</h4>
+                <span class="sub-hint">รองรับไฟล์ขนาดใหญ่ระดับ 100,000+ แถว • ตรวจจับรหัสภาษา UTF-8 / UTF-8 BOM / TIS-620 (CP874) / UTF-16 และซ่อมภาษาต่างดาวอัตโนมัติ</span>
+              </div>
+              <div class="card-actions">
+                <button type="button" class="btn-secondary btn-sm" id="btnLoadWorkspaceCsv">🧪 โหลดไฟล์ CSV ทดสอบ (140,104 แถว)</button>
+                <button type="button" class="btn-xs" id="btnLoadMojibakeSample">🧟 ทดสอบซ่อมภาษาต่างดาว (Mojibake)</button>
+              </div>
+            </div>
+
+            <div class="param-row-2col" style="align-items:center;">
+              <div>
+                <label class="field-label">อัปโหลดไฟล์ (.csv, .tsv, .txt, .psv)</label>
+                <input type="file" id="fmtConverterFileInput" accept=".csv,.tsv,.txt,.psv,.json,.jsonl" class="input-text input-sm" />
+              </div>
+              <div>
+                <label class="field-label">รหัสภาษาต้นฉบับ (Source Encoding)</label>
+                <select id="fmtSourceEncodingSelect" class="input-select input-sm">
+                  <option value="auto" selected>🔍 Auto-Detect (ตรวจจับอัตโนมัติ — แนะนำ)</option>
+                  <option value="utf-8">UTF-8 (No BOM)</option>
+                  <option value="utf-8-sig">UTF-8 with BOM (EF BB BF)</option>
+                  <option value="cp874">TIS-620 / CP874 / Windows-874 (Thai Legacy)</option>
+                  <option value="utf-16">UTF-16 LE / BE</option>
+                  <option value="latin1">Windows-1252 / ISO-8859-1 (Latin-1)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Diagnostics Banner -->
+            <div id="fmtExcelWarningBanner" class="highlighted-output" style="display:none; margin-top:10px; background:#fffbeb; border-color:#f59e0b; color:#92400e; font-size:13px;"></div>
+
+            <!-- Metadata Summary Pills -->
+            <div id="fmtDiagnosticsBar" class="stats-inline" style="margin-top:10px; flex-wrap:wrap; gap:8px;">
+              <span class="stat-pill" id="fmtDiagFilename">ไฟล์: ยังไม่ได้เลือก</span>
+              <span class="stat-pill" id="fmtDiagEncoding">Encoding: -</span>
+              <span class="stat-pill" id="fmtDiagBom">BOM: -</span>
+              <span class="stat-pill" id="fmtDiagRows">0 แถว</span>
+              <span class="stat-pill" id="fmtDiagDelimiter">ตัวคั่น: -</span>
+              <span class="stat-pill" id="fmtDiagHex">Hex: -</span>
+            </div>
+          </div>
+
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>2. ตั้งค่ารหัสภาษาและรูปแบบไฟล์ปลายทาง (Target Output)</h4>
+                  <span class="sub-hint">เลือกแปลงเป็น UTF-8 with BOM สำหรับเปิดใน Excel หรือแปลงข้ามฟอร์แมต</span>
+                </div>
+                <button type="button" class="btn-primary btn-sm" id="btnRunFormatConvert">🔄 แปลงไฟล์ทันที</button>
+              </div>
+
+              <div class="param-row-2col">
+                <div>
+                  <label class="field-label">รหัสภาษาปลายทาง (Target Encoding)</label>
+                  <select id="fmtTargetEncodingSelect" class="input-select input-sm">
+                    <option value="utf-8-sig" selected>✅ UTF-8 with BOM (เปิดใน Microsoft Excel ภาษาไทยไม่เพี้ยน 100%)</option>
+                    <option value="utf-8">🌐 UTF-8 (No BOM — สำหรับ Database / BigQuery / Python / AI)</option>
+                    <option value="cp874">🏛️ TIS-620 / CP874 / Windows-874 (ระบบราชการ / ธนาคาร / Mainframe)</option>
+                    <option value="utf-16">📑 UTF-16 LE with BOM (Excel Unicode Text)</option>
+                    <option value="utf-16-be">📑 UTF-16 BE with BOM</option>
+                    <option value="ascii_escape">🔤 ASCII with \uXXXX Unicode Escape</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field-label">รูปแบบไฟล์ปลายทาง (Target Format)</label>
+                  <select id="fmtTargetFormatSelect" class="input-select input-sm">
+                    <option value="csv" selected>📄 CSV — Comma Separated (,)</option>
+                    <option value="tsv">📋 TSV — Tab Separated (\t)</option>
+                    <option value="pipe">🧱 Pipe Delimited (|)</option>
+                    <option value="semicolon">🇪🇺 Semicolon Delimited (;)</option>
+                    <option value="xlsx">📊 Excel Workbook (.xlsx)</option>
+                    <option value="jsonl">🤖 JSON Lines (.jsonl — BigQuery / AI)</option>
+                    <option value="json">📦 JSON Array (.json)</option>
+                    <option value="sql">🗄️ SQL INSERT INTO Batch (.sql)</option>
+                    <option value="markdown">📝 Markdown Table (.md)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="param-row-2col">
+                <div>
+                  <label class="field-label">รหัสขึ้นบรรทัดใหม่ (Line Ending)</label>
+                  <select id="fmtLineEndingSelect" class="input-select input-sm">
+                    <option value="crlf" selected>CRLF (\r\n — มาตรฐาน Windows &amp; Excel)</option>
+                    <option value="lf">LF (\n — มาตรฐาน macOS / Linux / Cloud)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field-label">ชื่อตาราง SQL (เมื่อแปลงเป็น .sql)</label>
+                  <input type="text" id="fmtSqlTableInput" class="input-text input-sm" value="route_delivery_stats" />
+                </div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+                <label class="checkbox-inline">
+                  <input type="checkbox" id="fmtFixMojibakeCheck" checked />
+                  <span><strong>Auto-Repair Thai Mojibake:</strong> ซ่อมข้อความภาษาต่างดาว (เช่น <code>à¸à¸£à¸¸à¸‡...</code> หรือ <code>เธเธ£เธธเธ‡...</code>) กลับเป็นภาษาไทยอัตโนมัติ</span>
+                </label>
+                <label class="checkbox-inline">
+                  <input type="checkbox" id="fmtCleanNumbersCheck" checked />
+                  <span><strong>Clean Formatted Numbers:</strong> ลบลูกน้ำในตัวเลข (เช่น <code>"72,243"</code> → <code>72243</code>) เพื่อให้คำนวณและเข้า DB ได้ทันที</span>
+                </label>
+                <label class="checkbox-inline">
+                  <input type="checkbox" id="fmtTrimWhitespaceCheck" />
+                  <span><strong>Trim Whitespace (TRIM):</strong> ตัดช่องว่างส่วนเกินหน้า-หลังข้อความในทุกคอลัมน์</span>
+                </label>
+              </div>
+
+              <label class="field-label" style="margin-top:6px;">หรือวางข้อความ / CSV / ภาษาต่างดาวโดยตรง (Optional Raw Text)</label>
+              <textarea id="fmtRawTextInput" class="code-textarea" style="min-height:110px;" placeholder="หากไม่ได้อัปโหลดไฟล์ สามารถวางข้อความ CSV หรือข้อความภาษาต่างดาวที่นี่ได้เลย..."></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>3. ตัวอย่างผลลัพธ์และดาวน์โหลดไฟล์</h4>
+                  <span class="sub-hint" id="fmtConvertResultBadge">พร้อมแปลงข้อมูล</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnCopyConvertedPreview">📋 คัดลอกตัวอย่าง</button>
+                  <button type="button" class="btn-success btn-sm" id="btnDownloadConvertedFile" disabled>💾 ดาวน์โหลดไฟล์ที่แปลงแล้ว</button>
+                </div>
+              </div>
+
+              <textarea id="fmtConvertedPreviewOutput" class="code-textarea output-readonly" style="min-height:175px;" readonly placeholder="ตัวอย่างผลลัพธ์หลังแปลงรหัสภาษาและรูปแบบไฟล์จะแสดงที่นี่..."></textarea>
+
+              <div class="highlighted-box-header" style="margin-top:8px;">
+                <span>ตารางตัวอย่างข้อมูลที่ตรวจพบ (12 แถวแรก)</span>
+              </div>
+              <div id="fmtPreviewTableContainer" class="table-scroll-container" style="max-height:220px;"></div>
             </div>
           </div>
         </section>

@@ -83,11 +83,29 @@ def inspect_tabular_file(
     """Inspect an uploaded .xlsx or .csv file and return sheet metadata, columns, and preview rows."""
     lower_name = filename.lower()
     if lower_name.endswith(".csv") or lower_name.endswith(".tsv"):
+        from app.ai_tools import detect_and_decode_bytes
+
         delimiter = "\t" if lower_name.endswith(".tsv") else ","
-        text_content = file_bytes.decode("utf-8-sig", errors="replace")
-        reader = list(csv.reader(io.StringIO(text_content), delimiter=delimiter))
+        enc_info = detect_and_decode_bytes(file_bytes)
+        text_content = enc_info["text"]
+        total_lines = text_content.count("\n")
+        if text_content and not text_content.endswith("\n"):
+            total_lines += 1
+        head_lines: List[str] = []
+        pos = 0
+        for _ in range(max_preview_rows + 5):
+            nxt = text_content.find("\n", pos)
+            if nxt == -1:
+                rem = text_content[pos:].rstrip("\r")
+                if rem:
+                    head_lines.append(rem)
+                break
+            head_lines.append(text_content[pos:nxt].rstrip("\r"))
+            pos = nxt + 1
+        reader = list(csv.reader(io.StringIO("\n".join(head_lines)), delimiter=delimiter))
         headers = reader[0] if reader else []
         data_rows = reader[1:] if len(reader) > 1 else []
+        row_count = max(0, total_lines - 1) if headers else 0
         preview = [
             {headers[i] if i < len(headers) else f"Col_{i+1}": (row[i] if i < len(row) else "") for i in range(len(headers))}
             for row in data_rows[:max_preview_rows]
@@ -95,11 +113,12 @@ def inspect_tabular_file(
         return {
             "filename": filename,
             "file_type": "csv",
+            "encoding": enc_info["encoding_label"],
             "sheets": [
                 {
                     "name": "CSV_Data",
                     "columns": headers,
-                    "row_count": len(data_rows),
+                    "row_count": row_count,
                     "preview_rows": preview,
                 }
             ],
@@ -293,8 +312,10 @@ def mask_tabular_file(
         return res
 
     if lower_name.endswith(".csv") or lower_name.endswith(".tsv"):
+        from app.ai_tools import detect_and_decode_bytes
+
         delimiter = "\t" if lower_name.endswith(".tsv") else ","
-        text_content = file_bytes.decode("utf-8-sig", errors="replace")
+        text_content = detect_and_decode_bytes(file_bytes)["text"]
         rows = list(csv.reader(io.StringIO(text_content), delimiter=delimiter))
         if not rows:
             return {
