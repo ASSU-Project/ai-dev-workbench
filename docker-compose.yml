@@ -1,0 +1,9 @@
+services:
+  presidio-ai-workbench:
+    build: .
+    container_name: presidio-ai-workbench
+    ports:
+      - "18765:18765"
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1

@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI &amp; Data Workbench</title>
+  <link rel="stylesheet" href="/static/styles.css?v=2.0" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- ====================================================================
+         LEFT NAVIGATION MENU (Neutral, Clean, DevToys / Linear Style)
+         ==================================================================== -->
+    <aside class="nav-sidebar">
+      <div class="nav-brand">
+        <div class="nav-logo">🛠️</div>
+        <div class="nav-brand-text">
+          <div class="nav-app-name">AI &amp; Data Workbench</div>
+          <div class="nav-app-sub">Daily Developer Utilities</div>
+        </div>
+      </div>
+
+      <div class="nav-search-box">
+        <input type="text" id="menuSearchInput" class="nav-search-input" placeholder="ค้นหาเครื่องมือ..." />
+      </div>
+
+      <nav class="nav-menu" id="mainNavMenu">
+        <!-- Group: Privacy & Redaction -->
+        <div class="nav-group-label">Privacy &amp; AI Guardrails</div>
+        <button type="button" class="nav-item active" data-view="view-pii-text" data-title="PII &amp; Secret Redactor" data-desc="ตรวจจับและปกปิดข้อมูลส่วนบุคคล รหัสลับ และ API Keys จากข้อความหรือโค้ด">
+          <span class="nav-icon">🛡️</span>
+          <span class="nav-text">PII &amp; Secret Redactor</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-pii-excel" data-title="Excel &amp; CSV Masker" data-desc="อัปโหลดและปกปิดข้อมูลส่วนบุคคลในไฟล์ตาราง Excel (.xlsx) และ CSV">
+          <span class="nav-icon">📊</span>
+          <span class="nav-text">Excel &amp; CSV Masker</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-pii-restore" data-title="Token Restore" data-desc="กู้คืนรหัส Token ([PERSON_1]) ในข้อความหรือไฟล์ Excel กลับเป็นข้อมูลต้นฉบับ">
+          <span class="nav-icon">🔓</span>
+          <span class="nav-text">Token Restore</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-prompt-guard" data-title="Prompt Injection &amp; Jailbreak Scanner" data-desc="สแกนหาคำสั่งโจมตีแฝง (Prompt Injection, Role Hijacking, Delimiter Escape, Data Exfiltration) ก่อนส่งเข้า LLM">
+          <span class="nav-icon">🚨</span>
+          <span class="nav-text">Prompt Injection Guard</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-env-sanitizer" data-title=".env &amp; Config Safe-Share Sanitizer" data-desc="ล้างเฉพาะรหัสผ่าน Connection String และ API Secret ในไฟล์ .env / YAML / JSON ก่อนก๊อปถาม AI">
+          <span class="nav-icon">🔐</span>
+          <span class="nav-text">.env &amp; Config Sanitizer</span>
+        </button>
+
+        <!-- Group 1: Context & Token -->
+        <div class="nav-group-label">Context &amp; Token</div>
+        <button type="button" class="nav-item" data-view="view-token-counter" data-title="Token Counter &amp; Cost Estimator" data-desc="คำนวณจำนวน Token (รองรับสัดส่วนภาษาไทย/อังกฤษ) และประมาณการค่าใช้จ่ายแต่ละโมเดล">
+          <span class="nav-icon">🧮</span>
+          <span class="nav-text">Token &amp; Cost Calculator</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-json-compressor" data-title="JSON-to-TOON &amp; Context Compressor" data-desc="บีบอัด JSON ก้อนใหญ่ให้เป็น TOON, Markdown Table หรือ TSV เพื่อลดจำนวน Token ลง 45–65%">
+          <span class="nav-icon">📉</span>
+          <span class="nav-text">JSON / TOON Compressor</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-repo-prompt" data-title="Repo-to-Prompt Flattener" data-desc="รวบโครงสร้างโฟลเดอร์และไฟล์โค้ดในโปรเจกต์ให้เป็น Markdown ก้อนเดียวพร้อมส่งเข้า LLM">
+          <span class="nav-icon">📦</span>
+          <span class="nav-text">Repo to Prompt</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-agents-md" data-title="AGENTS.md / CLAUDE.md / llms.txt Generator" data-desc="สแกนโครงสร้างโปรเจกต์เพื่อสร้างไฟล์คู่มือ AGENTS.md, CLAUDE.md และ llms.txt สำหรับ Coding Agent">
+          <span class="nav-icon">🧭</span>
+          <span class="nav-text">AGENTS.md &amp; llms.txt</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-html-md" data-title="URL / HTML to Clean Markdown" data-desc="แปลงหน้าเว็บหรือโค้ด HTML รกๆ ให้เป็น Markdown คลีนเพื่อประหยัด Token">
+          <span class="nav-icon">📄</span>
+          <span class="nav-text">URL / HTML to Markdown</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-chunk-vis" data-title="RAG Chunk Visualizer" data-desc="จำลองการหั่นข้อความด้วย chunk_size และ chunk_overlap เพื่อตรวจสอบจุดตัดประโยคก่อนทำ Embedding">
+          <span class="nav-icon">✂️</span>
+          <span class="nav-text">Chunk Visualizer</span>
+        </button>
+
+        <!-- Group 2: Data & Schema -->
+        <div class="nav-group-label">Data &amp; Schema</div>
+        <button type="button" class="nav-item" data-view="view-type-schema" data-title="Type / Interface to JSON Schema" data-desc="แปลง TypeScript Interface, Python Pydantic หรือ Zod ให้เป็น JSON Schema มาตรฐาน">
+          <span class="nav-icon">📐</span>
+          <span class="nav-text">Type to JSON Schema</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-schema-validator" data-title="LLM Output vs. JSON Schema Validator" data-desc="ตรวจสอบว่า JSON ที่ได้จาก LLM ตรงตาม Schema ทุกฟิลด์หรือไม่ พร้อมสร้าง Self-Correction Prompt">
+          <span class="nav-icon">✅</span>
+          <span class="nav-text">Schema Output Validator</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-json-repair" data-title="Broken / Partial JSON Repair" data-desc="ซ่อม JSON ที่แหว่งหรือขาดครึ่งจาก Streaming Response ให้สมบูรณ์และดูโครงสร้างได้ทันที">
+          <span class="nav-icon">🔧</span>
+          <span class="nav-text">Broken JSON Repair</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-jsonl-viewer" data-title="JSONL Viewer &amp; Validator" data-desc="เปิดดูไฟล์ .jsonl สำหรับงาน Fine-tuning หรือ Batch API ในรูปแบบตาราง">
+          <span class="nav-icon">📋</span>
+          <span class="nav-text">JSONL Table Viewer</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-eval-dataset" data-title="Excel / CSV to AI Eval &amp; Fine-Tune .jsonl" data-desc="แปลงข้อมูลตารางคำถาม-คำตอบเป็นไฟล์ .jsonl สำหรับ OpenAI Fine-tuning, ShareGPT หรือ Promptfoo พร้อมปกปิด PII อัตโนมัติ">
+          <span class="nav-icon">🗂️</span>
+          <span class="nav-text">Eval &amp; Fine-Tune .jsonl</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-unicode-strip" data-title="Unicode &amp; Invisible Character Stripper" data-desc="ตรวจหาและล้างอักขระล่องหน (Zero-width spaces, BOM, Control chars) ที่ทำให้ JSON พัง">
+          <span class="nav-icon">🧹</span>
+          <span class="nav-text">Unicode Cleaner</span>
+        </button>
+
+        <!-- Group 3: Prompt & Agent Debugging -->
+        <div class="nav-group-label">Prompt &amp; Agent Debug</div>
+        <button type="button" class="nav-item" data-view="view-fn-to-tool" data-title="Function-to-Tool Schema Generator" data-desc="แปลงฟังก์ชัน Python / TypeScript และ Docstring เป็น Tool Schema ของ OpenAI, Claude, Gemini และ MCP พร้อมกัน">
+          <span class="nav-icon">🧰</span>
+          <span class="nav-text">Function to Tool Schema</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-mcp-inspector" data-title="MCP Inspector" data-desc="ทดสอบและจำลองการเรียกใช้ Tool / Resource ของ Model Context Protocol (MCP) Server">
+          <span class="nav-icon">🔌</span>
+          <span class="nav-text">MCP Inspector</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-sse-reconstructor" data-title="Raw SSE Stream &amp; Agent Trace Reconstructor" data-desc="ประกอบร่าง Raw Server-Sent Events (data: {...}) จาก Streaming API กลับเป็นข้อความเต็มและ Tool Calls">
+          <span class="nav-icon">🕵️‍♂️</span>
+          <span class="nav-text">SSE Stream Reconstructor</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-log-compressor" data-title="Smart Stacktrace &amp; Log Compressor" data-desc="ยุบบรรทัด Error Log ที่ซ้ำกัน ตัด Stack Frame ภายใน Library และปกปิด PII ก่อนส่งถาม AI">
+          <span class="nav-icon">🪵</span>
+          <span class="nav-text">Smart Log Compressor</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-prompt-diff" data-title="Prompt Diff &amp; Variables" data-desc="เปรียบเทียบ Prompt 2 เวอร์ชัน ดูจุดแก้ไข ตัวแปร {{variable}} และผลต่างจำนวน Token">
+          <span class="nav-icon">⚖️</span>
+          <span class="nav-text">Prompt Diff</span>
+        </button>
+
+        <!-- Group 4: Vector & Media -->
+        <div class="nav-group-label">Vector &amp; Media</div>
+        <button type="button" class="nav-item" data-view="view-cosine-sim" data-title="Cosine Similarity Calculator" data-desc="วัดค่าความใกล้เคียงของประโยคและตรวจสอบคำสำคัญสำหรับดีบักระบบค้นหา (RAG)">
+          <span class="nav-icon">🧭</span>
+          <span class="nav-text">Cosine Similarity</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-image-tokens" data-title="Image Token &amp; Resize Calculator" data-desc="คำนวณจำนวน Vision Token จากขนาดรูปภาพ และย่อรูปเพื่อประหยัดค่าใช้จ่าย API">
+          <span class="nav-icon">🖼️</span>
+          <span class="nav-text">Image Token &amp; Resizer</span>
+        </button>
+
+        <!-- Group 5: Settings & Configuration (Separated by Group) -->
+        <div class="nav-group-label">Settings &amp; Configuration</div>
+        <button type="button" class="nav-item" data-view="view-settings" data-title="Detection Entities by Group" data-desc="เลือกเปิด/ปิดประเภทข้อมูลที่ต้องการตรวจจับ แยกตามหมวดหมู่ข้อมูลส่วนบุคคล การเงิน สากล และรหัสลับ">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-text">Detection Entities</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-settings-masking" data-title="Masking Threshold &amp; Per-Entity Rules" data-desc="ตั้งค่าระดับความมั่นใจขั้นต่ำ และกำหนดรูปแบบการปกปิดเฉพาะรายประเภทข้อมูล (Entity Overrides)">
+          <span class="nav-icon">🎛️</span>
+          <span class="nav-text">Masking &amp; Overrides</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-settings-rules" data-title="Custom Regex &amp; Deny-list Rules" data-desc="สร้าง ทดสอบ และจัดการกฎตรวจจับรหัสเฉพาะขององค์กรด้วย Regular Expression หรือรายการคำเฉพาะ">
+          <span class="nav-icon">🧩</span>
+          <span class="nav-text">Custom Regex &amp; Rules</span>
+        </button>
+        <button type="button" class="nav-item" data-view="view-settings-system" data-title="System Diagnostics &amp; Automated Self-Test" data-desc="ตรวจสอบสถานะระบบ ล้างหน่วยความจำแคช และรันชุดทดสอบอัตโนมัติครบทุกฟังก์ชัน">
+          <span class="nav-icon">🧪</span>
+          <span class="nav-text">System &amp; Auto-Test</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- ====================================================================
+         MAIN WORKSPACE AREA
+         ==================================================================== -->
+    <div class="workspace-main">
+      <!-- Clean Contextual Header (Shows ONLY active tool title & subtitle) -->
+      <header class="view-header">
+        <div>
+          <h1 id="activeViewTitle">PII &amp; Secret Redactor</h1>
+          <p id="activeViewDesc">ตรวจจับและปกปิดข้อมูลส่วนบุคคล รหัสลับ และ API Keys จากข้อความหรือโค้ด</p>
+        </div>
+      </header>
+
+      <!-- Shared Masking Settings Bar (Visible only on PII Text & Excel views) -->
+      <div id="sharedMaskingBar" class="masking-config-bar">
+        <div class="mbar-top">
+          <div class="mbar-presets">
+            <span class="mbar-label">รูปแบบการปกปิด:</span>
+            <button type="button" class="preset-chip active" data-preset="keep_2_3">
+              เว้นหน้า 2 หลัง 3 <code>08*******678</code>
+            </button>
+            <button type="button" class="preset-chip" data-preset="keep_3_2_sep">
+              คงขีดคั่น <code>081-***-**78</code>
+            </button>
+            <button type="button" class="preset-chip" data-preset="token">
+              รหัสกู้คืนได้ <code>[PERSON_1]</code>
+            </button>
+            <button type="button" class="preset-chip" data-preset="replace">
+              ป้ายประเภท <code>&lt;ENTITY&gt;</code>
+            </button>
+            <button type="button" class="preset-chip" data-preset="redact_tag">
+              เซ็นเซอร์ <code>[REDACTED]</code>
+            </button>
+          </div>
+          <div class="mbar-preview">
+            <span>ตัวอย่าง:</span>
+            <code id="lpPhoneAfter">08*******678</code>
+            <code id="lpNameAfter">สม*******มาก</code>
+          </div>
+        </div>
+
+        <div class="mbar-controls">
+          <div class="mbar-field">
+            <label for="maskModeSelect">โหมด</label>
+            <select id="maskModeSelect" class="input-select input-sm">
+              <option value="keep_prefix_suffix" selected>เว้นหน้า N / เว้นหลัง M ตัว</option>
+              <option value="mask_prefix_suffix">ปิดหน้า N / ปิดหลัง M ตัว</option>
+              <option value="token">Token Mapping ([PERSON_1])</option>
+              <option value="replace">Replace (&lt;ENTITY&gt;)</option>
+              <option value="redact">Redact ([REDACTED] / ลบทิ้ง)</option>
+              <option value="mask">Mask จากท้าย/หน้า N ตัว</option>
+              <option value="hash">Hash (SHA-256 / MD5)</option>
+            </select>
+          </div>
+
+          <!-- Contextual inline inputs per mode -->
+          <div id="paramsKeepPrefixSuffix" class="mbar-inline-group">
+            <div class="mbar-field">
+              <label for="keepStartInput">เว้นหน้า</label>
+              <input type="number" id="keepStartInput" class="input-num input-sm" value="2" min="0" max="20" style="width:64px;" />
+            </div>
+            <div class="mbar-field">
+              <label for="keepEndInput">เว้นหลัง</label>
+              <input type="number" id="keepEndInput" class="input-num input-sm" value="3" min="0" max="20" style="width:64px;" />
+            </div>
+            <div class="mbar-field">
+              <label for="maskCharInput">ตัวปิด</label>
+              <select id="maskCharInput" class="input-select input-sm" style="width:74px;">
+                <option value="*" selected>*</option>
+                <option value="X">X</option>
+                <option value="#">#</option>
+                <option value="•">•</option>
+              </select>
+            </div>
+            <input type="hidden" id="fixedMaskLenInput" value="0" />
+            <label class="checkbox-inline">
+              <input type="checkbox" id="preserveSepCheckbox" />
+              <span>คงขีด <code>-</code> <code>@</code> <code>.</code></span>
+            </label>
+          </div>
+
+          <div id="paramsMaskPrefixSuffix" class="mbar-inline-group hidden">
+            <div class="mbar-field">
+              <label for="maskStartInput">ปิดหน้า</label>
+              <input type="number" id="maskStartInput" class="input-num input-sm" value="2" min="0" max="20" style="width:64px;" />
+            </div>
+            <div class="mbar-field">
+              <label for="maskEndInput">ปิดหลัง</label>
+              <input type="number" id="maskEndInput" class="input-num input-sm" value="3" min="0" max="20" style="width:64px;" />
+            </div>
+          </div>
+
+          <div id="paramsReplace" class="mbar-inline-group hidden">
+            <div class="mbar-field">
+              <label for="replaceTemplateInput">รูปแบบคำแทนที่</label>
+              <input type="text" id="replaceTemplateInput" class="input-text input-sm" value="&lt;{entity_type}&gt;" style="width:160px;" />
+            </div>
+          </div>
+
+          <div id="paramsStandardMask" class="mbar-inline-group hidden">
+            <div class="mbar-field">
+              <label for="charsToMaskInput">จำนวนตัวที่ปิด</label>
+              <input type="number" id="charsToMaskInput" class="input-num input-sm" value="6" min="1" max="50" style="width:70px;" />
+            </div>
+            <div class="mbar-field">
+              <label for="fromEndSelect">ทิศทาง</label>
+              <select id="fromEndSelect" class="input-select input-sm">
+                <option value="true" selected>จากท้ายมาหน้า</option>
+                <option value="false">จากหน้าไปท้าย</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="paramsRedact" class="mbar-inline-group hidden">
+            <div class="mbar-field">
+              <label for="redactMarkerInput">คำแทนที่</label>
+              <input type="text" id="redactMarkerInput" class="input-text input-sm" value="[REDACTED]" placeholder="ว่าง = ลบทิ้ง" style="width:140px;" />
+            </div>
+          </div>
+
+          <div id="paramsHash" class="mbar-inline-group hidden">
+            <div class="mbar-field">
+              <label for="hashTypeSelect">Hash</label>
+              <select id="hashTypeSelect" class="input-select input-sm">
+                <option value="sha256" selected>SHA-256</option>
+                <option value="sha512">SHA-512</option>
+                <option value="md5">MD5</option>
+              </select>
+            </div>
+            <div class="mbar-field">
+              <label for="hashLenInput">ความยาว</label>
+              <input type="number" id="hashLenInput" class="input-num input-sm" value="12" min="0" max="128" style="width:68px;" />
+            </div>
+            <input type="hidden" id="hashSaltInput" value="" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Scrollable View Container -->
+      <main class="view-container">
+        <!-- ================================================================
+             VIEW 1: PII & SECRET REDACTOR (TEXT / CODE)
+             ================================================================ -->
+        <section id="view-pii-text" class="tool-view active">
+          <div class="pane-toolbar">
+            <div class="toolbar-left">
+              <span class="toolbar-label">ตัวอย่างทดสอบ:</span>
+              <button type="button" class="btn-secondary btn-sm" data-sample="thai_english_mixed">ข้อมูลลูกค้า (ไทย+อังกฤษ)</button>
+              <button type="button" class="btn-secondary btn-sm" data-sample="code_and_secrets">โค้ด &amp; API Keys (.env)</button>
+              <button type="button" class="btn-secondary btn-sm" data-sample="thai_support_log">บันทึกแจ้งโอนเงิน</button>
+              <label class="btn-secondary btn-sm file-label-btn">
+                📂 เปิดไฟล์
+                <input type="file" id="plainTextFileInput" accept=".txt,.md,.json,.csv,.log,.env,.py,.ts,.js" hidden />
+              </label>
+            </div>
+            <div class="toolbar-right">
+              <span class="muted-placeholder" id="textTimingLabel"></span>
+              <button type="button" class="btn-primary btn-sm" id="btnRunTextMask">ประมวลผล</button>
+            </div>
+          </div>
+
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ข้อความ / โค้ดต้นฉบับ (Original Input)</h4>
+                  <span class="sub-hint">วางข้อความ โค้ด หรือ Log เพื่อกรองข้อมูลสำคัญออกอัตโนมัติ</span>
+                </div>
+                <button type="button" class="btn-xs" id="btnClearText">ล้างข้อความ</button>
+              </div>
+              <textarea id="inputTextArea" class="code-textarea" placeholder="วางข้อความหรือโค้ดที่นี่..."></textarea>
+
+              <div class="highlighted-box-header">
+                <span>จุดที่ตรวจพบ (คลิกที่ป้ายสีเพื่อ ยกเว้น/เปิดใช้ เฉพาะจุด)</span>
+                <span id="detectionSummaryBadge" class="badge-count">0 รายการ</span>
+              </div>
+              <div id="highlightedPreviewBox" class="highlighted-preview"></div>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ผลลัพธ์หลังปกปิดข้อมูล (Masked Output)</h4>
+                  <span class="sub-hint">พร้อมคัดลอกไปใช้งานต่อ</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-success btn-sm" id="btnCopyMaskedText">📋 คัดลอกผลลัพธ์</button>
+                  <button type="button" class="btn-secondary btn-sm" id="btnDownloadMaskedTxt">บันทึก .txt</button>
+                  <button type="button" class="btn-xs" id="btnDownloadTextTokenMap">Token JSON</button>
+                  <button type="button" class="btn-xs" id="btnSendToRestoreTab">ส่งไปหน้ากู้คืน</button>
+                </div>
+              </div>
+              <textarea id="outputTextArea" class="code-textarea output-readonly" readonly></textarea>
+
+              <div class="highlighted-box-header">
+                <span>สรุปข้อมูลที่ถูกปกปิดแยกตามประเภท</span>
+              </div>
+              <div id="entityStatsBar" class="entity-stats-bar"></div>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="card-header">
+              <h4>รายการที่ตรวจพบทั้งหมด</h4>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="detectionsTable">
+                <thead>
+                  <tr>
+                    <th style="width: 65px;">ปกปิด</th>
+                    <th style="width: 50px;">#</th>
+                    <th>ประเภทข้อมูล</th>
+                    <th>ค่าต้นฉบับ</th>
+                    <th>ค่าหลังปกปิด</th>
+                    <th style="width: 100px;">ความมั่นใจ</th>
+                    <th style="width: 100px;">ตำแหน่ง</th>
+                  </tr>
+                </thead>
+                <tbody id="detectionsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 2: EXCEL & CSV MASKER
+             ================================================================ -->
+        <section id="view-pii-excel" class="tool-view">
+          <div class="excel-top-grid">
+            <div class="upload-dropzone" id="excelDropzone">
+              <div class="drop-icon">📊</div>
+              <h4>อัปโหลดไฟล์ Excel (.xlsx) หรือ CSV</h4>
+              <p>ลากไฟล์มาวางที่นี่ หรือเลือกไฟล์จากเครื่องของคุณ</p>
+              <div class="drop-actions">
+                <label class="btn-primary file-label-btn">
+                  📂 เลือกไฟล์ Excel / CSV
+                  <input type="file" id="excelFileInput" accept=".xlsx,.csv,.tsv" hidden />
+                </label>
+                <button type="button" class="btn-secondary" id="btnLoadSampleExcel">
+                  โหลดไฟล์ Excel ตัวอย่าง
+                </button>
+              </div>
+            </div>
+
+            <div class="excel-config-card" id="excelConfigPanel">
+              <div class="card-header">
+                <div>
+                  <h4 id="excelLoadedFilename">ยังไม่ได้เลือกไฟล์</h4>
+                  <span class="sub-hint" id="excelSheetSummary">เลือกไฟล์ Excel หรือกดปุ่มโหลดไฟล์ตัวอย่างทางซ้ายมือ</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnExcelSelectSmartCols">เลือกเฉพาะคอลัมน์ PII</button>
+                  <button type="button" class="btn-xs" id="btnExcelSelectAllCols">เลือกทุกคอลัมน์</button>
+                  <button type="button" class="btn-primary" id="btnRunExcelMask" disabled>ประมวลผลไฟล์ Excel</button>
+                </div>
+              </div>
+
+              <div class="excel-options-body">
+                <div class="excel-options-checks">
+                  <label class="checkbox-row">
+                    <input type="checkbox" id="forceMaskSelectedColsCheck" />
+                    <span>บังคับปกปิดทั้งช่องสำหรับคอลัมน์ที่เลือก (แม้ไม่มีคำนำหน้าชื่อ)</span>
+                  </label>
+                  <label class="checkbox-row">
+                    <input type="checkbox" id="includeAuditSheetCheck" checked />
+                    <span>แนบชีต <code>_PII_Token_Vault</code> เมื่อใช้โหมด Token Mapping เพื่อใช้กู้คืนข้อมูล</span>
+                  </label>
+                </div>
+                <div id="excelSheetsSelectorArea" class="sheets-selector-area">
+                  <span class="muted-placeholder">รายชื่อชีตและคอลัมน์จะแสดงที่นี่เมื่อเลือกไฟล์...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="excelResultBanner" class="result-banner hidden">
+            <div class="result-banner-stats">
+              <div class="stat-pill">ตรวจสอบแล้ว <strong id="excelStatScanned">0</strong> เซลล์</div>
+              <div class="stat-pill stat-highlight">ปกปิดสำเร็จ <strong id="excelStatMasked">0</strong> เซลล์</div>
+              <div class="stat-pill">เวลา <strong id="excelStatTime">0</strong> ms</div>
+            </div>
+            <div class="result-banner-actions">
+              <button type="button" class="btn-success" id="btnDownloadMaskedExcel">📥 ดาวน์โหลดไฟล์ที่ปกปิดแล้ว (.xlsx / .csv)</button>
+              <button type="button" class="btn-secondary" id="btnDownloadExcelTokenJson">ดาวน์โหลด Token Key (.json)</button>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="card-header">
+              <div class="header-with-tabs">
+                <h4>ตารางเปรียบเทียบ ก่อน → หลัง</h4>
+                <div id="excelPreviewSheetTabs" class="mini-tabs"></div>
+              </div>
+              <label class="checkbox-row">
+                <input type="checkbox" id="showOnlyChangedRowsCheck" />
+                <span>แสดงเฉพาะแถวที่มีการเปลี่ยนแปลง</span>
+              </label>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="excelPreviewTable">
+                <thead id="excelPreviewHead">
+                  <tr><th>อัปโหลดไฟล์ Excel หรือกดปุ่ม "โหลดไฟล์ Excel ตัวอย่าง" ด้านบนเพื่อดูตารางเปรียบเทียบ</th></tr>
+                </thead>
+                <tbody id="excelPreviewBody">
+                  <tr><td class="empty-cell">ยังไม่มีข้อมูลแสดงผล</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 3: TOKEN RESTORE (DE-ANONYMIZE)
+             ================================================================ -->
+        <section id="view-pii-restore" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>1. กุญแจ Token Mapping (JSON)</h4>
+                  <span class="sub-hint">วาง JSON หรืออัปโหลดไฟล์ `.json` ที่ได้จากโหมดรหัสกู้คืนได้</span>
+                </div>
+                <label class="btn-secondary btn-sm file-label-btn">
+                  📂 โหลดไฟล์ .json
+                  <input type="file" id="restoreTokenJsonFile" accept=".json" hidden />
+                </label>
+              </div>
+              <textarea id="restoreTokenMapArea" class="code-textarea" style="min-height:220px;" placeholder='{"[TH_PERSON_NAME_1]": "สมชาย ใจดีมาก", "[TH_PHONE_NUMBER_1]": "081-234-5678"}'></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>2. กู้คืนข้อความ (Restore Text)</h4>
+                  <span class="sub-hint">วางข้อความที่มีรหัส `[ENTITY_1]` เพื่อแปลงกลับเป็นข้อมูลจริง</span>
+                </div>
+                <button type="button" class="btn-primary btn-sm" id="btnRunRestoreText">🔓 ถอดรหัสข้อความกลับ</button>
+              </div>
+              <textarea id="restoreInputTextArea" class="code-textarea" style="min-height:95px;" placeholder="วางข้อความที่มี [ENTITY_1]..."></textarea>
+              <div class="highlighted-box-header">
+                <span>ผลลัพธ์หลังกู้คืน</span>
+                <span id="restoreCountBadge" class="badge-count">0 จุด</span>
+              </div>
+              <textarea id="restoreOutputTextArea" class="code-textarea output-readonly" style="min-height:95px;" readonly></textarea>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="card-header">
+              <div>
+                <h4>3. กู้คืนไฟล์ Excel / CSV ย้อนกลับ</h4>
+                <span class="sub-hint">หากไฟล์ Excel มีชีต `_PII_Token_Vault` อยู่แล้ว สามารถเลือกไฟล์เพื่อถอดรหัสและดาวน์โหลดกลับได้ทันที</span>
+              </div>
+              <label class="btn-primary file-label-btn">
+                📂 เลือกไฟล์ Excel / CSV เพื่อกู้คืนทันที
+                <input type="file" id="restoreExcelFileInput" accept=".xlsx,.csv,.tsv" hidden />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 4: TOKEN COUNTER & COST ESTIMATOR
+             ================================================================ -->
+        <section id="view-token-counter" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ข้อความ / Prompt / JSON ที่ต้องการนับ Token</h4>
+                  <span class="sub-hint">คำนวณความต่างของการตัดคำภาษาไทยและภาษาอังกฤษตามแต่ละโมเดล</span>
+                </div>
+                <button type="button" class="btn-xs" id="btnSampleTokenText">โหลดข้อความตัวอย่าง</button>
+              </div>
+              <textarea id="tokenCounterInput" class="code-textarea" style="min-height:250px;"></textarea>
+              <div class="stat-cards-4col">
+                <div class="mini-metric"><span>อักขระทั้งหมด</span><strong id="tcTotalChars">0</strong></div>
+                <div class="mini-metric"><span>อักขระภาษาไทย</span><strong id="tcThaiChars">0</strong></div>
+                <div class="mini-metric"><span>จำนวนคำ</span><strong id="tcWords">0</strong></div>
+                <div class="mini-metric highlight"><span>ประมาณการ Token</span><strong id="tcBaseTokens">0</strong></div>
+              </div>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ตารางเปรียบเทียบจำนวน Token และค่าใช้จ่าย</h4>
+                  <span class="sub-hint">แสดงราคาต่อการเรียกใช้งาน 1 ครั้ง (ทั้ง USD และ THB)</span>
+                </div>
+              </div>
+              <div class="table-scroll" style="max-height:340px;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>โมเดล</th>
+                      <th>จำนวน Token</th>
+                      <th>สัดส่วน Context</th>
+                      <th>Input Cost</th>
+                      <th>Output Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tokenPricingTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 5: REPO TO PROMPT FLATTENER
+             ================================================================ -->
+        <section id="view-repo-prompt" class="tool-view">
+          <div class="editor-card">
+            <div class="card-header">
+              <div>
+                <h4>ตั้งค่าโฟลเดอร์โปรเจกต์ที่ต้องการรวบเป็นไฟล์เดียว</h4>
+                <span class="sub-hint">ตัดโฟลเดอร์ `node_modules`, `.git`, `.venv`, ไฟล์ lock และไฟล์ไบนารีออกอัตโนมัติ</span>
+              </div>
+              <div class="card-actions">
+                <button type="button" class="btn-secondary btn-sm" id="btnCopyRepoPrompt">📋 คัดลอก Markdown</button>
+                <button type="button" class="btn-primary btn-sm" id="btnRunRepoFlatten">สแกนและรวบไฟล์โปรเจกต์</button>
+              </div>
+            </div>
+            <div class="param-row-3col">
+              <div>
+                <label class="field-label">พาธโฟลเดอร์ (Folder Path)</label>
+                <input type="text" id="repoFolderPathInput" class="input-text" value="." placeholder="เช่น /Users/... หรือ ." />
+              </div>
+              <div>
+                <label class="field-label">จำนวนไฟล์สูงสุด</label>
+                <input type="number" id="repoMaxFilesInput" class="input-num" value="50" min="5" max="500" />
+              </div>
+              <div>
+                <label class="field-label">กรองเฉพาะนามสกุล (เว้นว่าง = ทั้งหมด)</label>
+                <input type="text" id="repoExtsInput" class="input-text" placeholder="เช่น .py, .ts, .md" />
+              </div>
+            </div>
+            <div class="split-editor-grid" style="margin-top:8px;">
+              <div>
+                <label class="field-label" id="repoTreeSummaryLabel">โครงสร้างโฟลเดอร์ (Directory Tree)</label>
+                <textarea id="repoTreeOutput" class="code-textarea" style="min-height:280px;" readonly></textarea>
+              </div>
+              <div>
+                <label class="field-label" id="repoMarkdownSummaryLabel">Prompt Markdown รวมโค้ด</label>
+                <textarea id="repoMarkdownOutput" class="code-textarea output-readonly" style="min-height:280px;" readonly></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 6: URL / HTML TO CLEAN MARKDOWN
+             ================================================================ -->
+        <section id="view-html-md" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>URL หรือโค้ด HTML ต้นฉบับ</h4>
+                  <span class="sub-hint">วางลิงก์ `https://...` หรือวางโค้ด HTML เพื่อตัด Tag และโฆษณาออก</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSampleHtmlInput">โหลดตัวอย่าง HTML</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunHtmlToMd">แปลงเป็น Markdown</button>
+                </div>
+              </div>
+              <textarea id="htmlToMdInput" class="code-textarea" style="min-height:310px;" placeholder="วาง URL หรือ HTML ที่นี่..."></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ผลลัพธ์ Clean Markdown</h4>
+                  <span class="sub-hint" id="mdSavingsBadge">พร้อมใช้งาน</span>
+                </div>
+                <button type="button" class="btn-success btn-sm" id="btnCopyCleanMd">📋 คัดลอก Markdown</button>
+              </div>
+              <textarea id="htmlToMdOutput" class="code-textarea output-readonly" style="min-height:310px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 7: RAG CHUNK VISUALIZER
+             ================================================================ -->
+        <section id="view-chunk-vis" class="tool-view">
+          <div class="editor-card">
+            <div class="param-row-3col">
+              <div>
+                <label class="field-label">ขนาด Chunk (`chunk_size` ตัวอักษร): <strong id="chunkSizeVal">240</strong></label>
+                <input type="range" id="chunkSizeSlider" min="60" max="1200" step="20" value="240" style="width:100%;" />
+              </div>
+              <div>
+                <label class="field-label">ส่วนซ้อนทับ (`chunk_overlap` ตัวอักษร): <strong id="chunkOverlapVal">45</strong></label>
+                <input type="range" id="chunkOverlapSlider" min="0" max="300" step="5" value="45" style="width:100%;" />
+              </div>
+              <div>
+                <label class="field-label">วิธีตัดข้อความ</label>
+                <select id="chunkStrategySelect" class="input-select">
+                  <option value="smart" selected>Smart Boundary (ตัดตามจบประโยค/เว้นวรรค)</option>
+                  <option value="fixed">Fixed Length (ตัดตามความยาวคงที่)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="split-editor-grid" style="margin-top:8px;">
+              <div>
+                <label class="field-label">ข้อความเอกสารต้นฉบับ</label>
+                <textarea id="chunkInputText" class="code-textarea" style="min-height:290px;"></textarea>
+              </div>
+              <div>
+                <label class="field-label" id="chunkSummaryHeader">รายการ Chunks (สีเหลือง = ส่วน Overlap ซ้อนทับ)</label>
+                <div id="chunkCardsContainer" class="chunk-cards-container" style="max-height:290px;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 8: TYPE / INTERFACE TO JSON SCHEMA
+             ================================================================ -->
+        <section id="view-type-schema" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>TypeScript Interface / Python Pydantic</h4>
+                  <span class="sub-hint">วางโค้ดโครงสร้างข้อมูลเพื่อแปลงเป็น JSON Schema</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSampleTsSchema">ตัวอย่าง TypeScript</button>
+                  <button type="button" class="btn-xs" id="btnSamplePySchema">ตัวอย่าง Pydantic</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunTypeToSchema">แปลงเป็น Schema</button>
+                </div>
+              </div>
+              <textarea id="typeToSchemaInput" class="code-textarea" style="min-height:310px;"></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>JSON Schema (`response_format` Strict Mode)</h4>
+                  <span class="sub-hint">สำหรับใส่ใน API ของ OpenAI / Claude / Gemini</span>
+                </div>
+                <button type="button" class="btn-success btn-sm" id="btnCopySchemaOutput">📋 คัดลอก JSON Schema</button>
+              </div>
+              <textarea id="typeToSchemaOutput" class="code-textarea output-readonly" style="min-height:310px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 9: BROKEN / PARTIAL JSON REPAIR
+             ================================================================ -->
+        <section id="view-json-repair" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>JSON ที่แหว่งหรือพังจาก LLM Stream</h4>
+                  <span class="sub-hint">รองรับ JSON ที่ลืมปิดวงเล็บ ลืมปิดเครื่องหมายคำพูด หรือมี Markdown ติดมา</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSampleBrokenJson">โหลดตัวอย่าง JSON พัง</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunRepairJson">ซ่อม JSON</button>
+                </div>
+              </div>
+              <textarea id="brokenJsonInput" class="code-textarea" style="min-height:260px;"></textarea>
+              <div id="jsonRepairsList" class="entity-stats-bar"></div>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ผลลัพธ์ JSON ที่ซ่อมแล้ว</h4>
+                  <span class="sub-hint" id="jsonRepairStatusBadge">พร้อมใช้งาน</span>
+                </div>
+                <button type="button" class="btn-success btn-sm" id="btnCopyRepairedJson">📋 คัดลอก JSON</button>
+              </div>
+              <textarea id="repairedJsonOutput" class="code-textarea output-readonly" style="min-height:310px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 10: JSONL VIEWER & VALIDATOR
+             ================================================================ -->
+        <section id="view-jsonl-viewer" class="tool-view">
+          <div class="editor-card">
+            <div class="card-header">
+              <div>
+                <h4>ข้อมูล JSONL (บรรทัดละ 1 JSON Object)</h4>
+                <span class="sub-hint">ตรวจสอบความถูกต้องของแต่ละบรรทัดและแปลงเป็นตารางอัตโนมัติ</span>
+              </div>
+              <div class="card-actions">
+                <label class="btn-secondary btn-sm file-label-btn">
+                  📂 เปิดไฟล์ .jsonl
+                  <input type="file" id="jsonlFileInput" accept=".jsonl,.txt" hidden />
+                </label>
+                <button type="button" class="btn-primary btn-sm" id="btnRunJsonlViewer">แสดงตาราง</button>
+              </div>
+            </div>
+            <textarea id="jsonlInputArea" class="code-textarea" style="min-height:130px;"></textarea>
+            <div class="table-scroll" style="max-height:310px;">
+              <table class="data-table">
+                <thead id="jsonlTableHead"></thead>
+                <tbody id="jsonlTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 11: UNICODE & INVISIBLE CHARACTER STRIPPER
+             ================================================================ -->
+        <section id="view-unicode-strip" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ข้อความที่ต้องการตรวจสอบอักขระล่องหน</h4>
+                  <span class="sub-hint">ตรวจหา Zero-Width Space (`U+200B`), BOM (`U+FEFF`), และ Control Characters</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSampleDirtyUnicode">โหลดตัวอย่างที่มีอักขระล่องหน</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunStripUnicode">ล้างอักขระล่องหน</button>
+                </div>
+              </div>
+              <textarea id="unicodeInputArea" class="code-textarea" style="min-height:250px;"></textarea>
+              <div id="unicodeFindingsBar" class="entity-stats-bar"></div>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ข้อความที่คลีนแล้ว</h4>
+                  <span class="sub-hint" id="unicodeRemovedBadge">ล้างออก 0 ตัว</span>
+                </div>
+                <button type="button" class="btn-success btn-sm" id="btnCopyCleanUnicode">📋 คัดลอกข้อความ</button>
+              </div>
+              <textarea id="unicodeOutputArea" class="code-textarea output-readonly" style="min-height:300px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 12: MCP INSPECTOR
+             ================================================================ -->
+        <section id="view-mcp-inspector" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ตั้งค่าคำสั่ง JSON-RPC สำหรับ MCP Server</h4>
+                  <span class="sub-hint">ทดสอบกับ Built-in Server (`builtin://presidio-mcp`) หรือระบุ HTTP URL ของ MCP Server</span>
+                </div>
+                <button type="button" class="btn-primary btn-sm" id="btnRunMcpCall">ส่งคำสั่ง</button>
+              </div>
+              <div class="form-stack">
+                <div>
+                  <label class="field-label">MCP Endpoint</label>
+                  <input type="text" id="mcpTargetUrl" class="input-text" value="builtin://presidio-mcp" />
+                </div>
+                <div class="param-row-2col">
+                  <div>
+                    <label class="field-label">Method</label>
+                    <select id="mcpMethodSelect" class="input-select">
+                      <option value="initialize">initialize</option>
+                      <option value="tools/list" selected>tools/list</option>
+                      <option value="resources/list">resources/list</option>
+                      <option value="tools/call">tools/call</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="field-label">ตัวอย่าง `tools/call`</label>
+                    <div style="display:flex; gap:4px;">
+                      <button type="button" class="btn-xs" id="btnMcpPresetMask">mask_pii_text</button>
+                      <button type="button" class="btn-xs" id="btnMcpPresetTokens">estimate_tokens</button>
+                      <button type="button" class="btn-xs" id="btnMcpPresetRepair">repair_json</button>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="field-label">Params (JSON)</label>
+                  <textarea id="mcpParamsArea" class="code-textarea" style="min-height:160px;">{
+  "name": "mask_pii_text",
+  "arguments": {
+    "text": "ลูกค้า นายสมชาย ใจดีมาก โทร 081-234-5678",
+    "keep_start": 2,
+    "keep_end": 3
+  }
+}</textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>JSON-RPC Request &amp; Response</h4>
+                  <span class="sub-hint" id="mcpLatencyBadge">Latency: 0 ms</span>
+                </div>
+              </div>
+              <textarea id="mcpResponseArea" class="code-textarea output-readonly" style="min-height:320px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 13: PROMPT DIFF & VARIABLES
+             ================================================================ -->
+        <section id="view-prompt-diff" class="tool-view">
+          <div class="editor-card">
+            <div class="card-header">
+              <div>
+                <h4>เปรียบเทียบ Prompt 2 เวอร์ชัน</h4>
+                <span class="sub-hint">วาง Prompt เวอร์ชัน A และ B เพื่อดูจุดที่แก้ไข ตัวแปร `{{variable}}` และผลต่าง Token</span>
+              </div>
+              <button type="button" class="btn-primary btn-sm" id="btnRunPromptDiff">เปรียบเทียบ</button>
+            </div>
+            <div class="split-editor-grid">
+              <div>
+                <label class="field-label">Prompt เวอร์ชัน A (<span id="promptATokens">0</span> Tokens)</label>
+                <textarea id="promptAInput" class="code-textarea" style="min-height:170px;">คุณคือผู้ช่วย AI สำหรับตอบคำถามลูกค้า {{customer_name}}
+กรุณาตอบอย่างสุภาพและกระชับตามข้อมูลใน {{context}}</textarea>
+              </div>
+              <div>
+                <label class="field-label">Prompt เวอร์ชัน B (<span id="promptBTokens">0</span> Tokens | ผลต่าง: <strong id="promptDeltaTokens">0</strong>)</label>
+                <textarea id="promptBInput" class="code-textarea" style="min-height:170px;">คุณคือผู้เชี่ยวชาญฝ่ายสนับสนุนลูกค้าของบริษัท สำหรับดูแลคุณ {{customer_name}} (ระดับ {{tier}})
+กรุณาตอบเป็น JSON เท่านั้นโดยอ้างอิงจาก {{context}} และห้ามเปิดเผยข้อมูลส่วนบุคคล</textarea>
+              </div>
+            </div>
+            <div class="highlighted-box-header" style="margin-top:8px;">
+              <span>เปรียบเทียบความต่าง (สีแดงขีดฆ่า = ลบออก | สีเขียว = เพิ่มใหม่)</span>
+              <span id="promptVarsBadge" class="badge-count">Variables: 0</span>
+            </div>
+            <div id="promptDiffOutput" class="highlighted-preview" style="min-height:120px;"></div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 14: COSINE SIMILARITY CALCULATOR
+             ================================================================ -->
+        <section id="view-cosine-sim" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <h4>ข้อความที่ต้องการเปรียบเทียบความใกล้เคียง</h4>
+                <button type="button" class="btn-primary btn-sm" id="btnRunCosineSim">คำนวณ</button>
+              </div>
+              <label class="field-label">ข้อความที่ 1 (เช่น คำค้นหา Query)</label>
+              <textarea id="cosineTextA" class="code-textarea" style="min-height:120px;">วิธีการขอคืนเงินและยกเลิกคำสั่งซื้อสินค้าออนไลน์ผ่านบัตรเครดิต</textarea>
+              <label class="field-label">ข้อความที่ 2 (เช่น เนื้อหาเอกสารที่ดึงมาได้)</label>
+              <textarea id="cosineTextB" class="code-textarea" style="min-height:120px;">ลูกค้าสามารถแจ้งยกเลิกคำสั่งซื้อและขอคืนเงินเข้าบัตรเครดิตได้ภายใน 7 วันทำการผ่านระบบออนไลน์</textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <h4>ผลการวัดความใกล้เคียง (Similarity Score)</h4>
+              </div>
+              <div class="stat-cards-2col">
+                <div class="mini-metric highlight">
+                  <span>Cosine Similarity</span>
+                  <strong id="cosineScoreVal" style="font-size:24px;">0%</strong>
+                </div>
+                <div class="mini-metric">
+                  <span>Jaccard Keyword Overlap</span>
+                  <strong id="jaccardScoreVal" style="font-size:24px;">0%</strong>
+                </div>
+              </div>
+              <div class="highlighted-box-header" style="margin-top:8px;">
+                <span>คำสำคัญที่ตรงกัน (Shared Terms)</span>
+              </div>
+              <div id="cosineSharedBar" class="entity-stats-bar"></div>
+              <div class="highlighted-box-header" style="margin-top:8px;">
+                <span>คำที่มีเฉพาะในข้อความที่ 1 (Missing in Text 2)</span>
+              </div>
+              <div id="cosineMissingBar" class="entity-stats-bar"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             VIEW 15: IMAGE TOKEN & RESIZE CALCULATOR
+             ================================================================ -->
+        <section id="view-image-tokens" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ขนาดรูปภาพ (Pixel Dimensions)</h4>
+                  <span class="sub-hint">เลือกรูปภาพจริงเพื่อย่อขนาด หรือกรอกตัวเลขความกว้าง × ความสูง</span>
+                </div>
+                <label class="btn-primary btn-sm file-label-btn">
+                  📂 เลือกรูปภาพ
+                  <input type="file" id="visionImageInput" accept="image/*" hidden />
+                </label>
+              </div>
+              <div class="param-row-2col">
+                <div>
+                  <label class="field-label">ความกว้าง (Width px)</label>
+                  <input type="number" id="imgWidthInput" class="input-num" value="2560" min="16" max="12000" />
+                </div>
+                <div>
+                  <label class="field-label">ความสูง (Height px)</label>
+                  <input type="number" id="imgHeightInput" class="input-num" value="1440" min="16" max="12000" />
+                </div>
+              </div>
+              <div class="stat-cards-3col" style="margin-top:8px;">
+                <div class="mini-metric">
+                  <span>GPT-4o Vision</span>
+                  <strong id="imgGptTokens">0</strong>
+                  <small id="imgGptTiles">0 Tiles</small>
+                </div>
+                <div class="mini-metric highlight">
+                  <span>Claude 3.7 Vision</span>
+                  <strong id="imgClaudeTokens">0</strong>
+                  <small id="imgClaudeScaled"></small>
+                </div>
+                <div class="mini-metric">
+                  <span>Gemini 2.5 Vision</span>
+                  <strong id="imgGeminiTokens">0</strong>
+                  <small>Tokens</small>
+                </div>
+              </div>
+              <div id="visionCanvasWrap" class="vision-preview-box">
+                <span class="muted-placeholder">อัปโหลดรูปภาพเพื่อเปิดใช้งานปุ่มย่อขนาดและดาวน์โหลดรูปจริง</span>
+              </div>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ตารางเปรียบเทียบการย่อขนาดรูปเพื่อประหยัด Token</h4>
+                  <span class="sub-hint">เปรียบเทียบจำนวน Token ที่ลดลงในแต่ละสัดส่วน</span>
+                </div>
+              </div>
+              <div class="table-scroll" style="max-height:310px;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>สัดส่วน</th>
+                      <th>ขนาดใหม่ (px)</th>
+                      <th>GPT-4o</th>
+                      <th>Claude</th>
+                      <th>ประหยัดลง</th>
+                      <th>ดาวน์โหลด</th>
+                    </tr>
+                  </thead>
+                  <tbody id="imgResizeTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             NEW TOOL 1: PROMPT INJECTION & JAILBREAK SCANNER
+             ================================================================ -->
+        <section id="view-prompt-guard" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ข้อความหรือเอกสาร RAG ที่ต้องการสแกนความปลอดภัย</h4>
+                  <span class="sub-hint">ตรวจหา Instruction Override, DAN Jailbreak, Delimiter Escape และ Markdown Exfiltration</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSamplePromptAttack">โหลดตัวอย่างโจมตี</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunPromptGuard">สแกนความปลอดภัย</button>
+                </div>
+              </div>
+              <textarea id="promptGuardInput" class="code-textarea" style="min-height:220px;"></textarea>
+              <div id="promptGuardFindingsBox" class="entity-stats-bar"></div>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ผลการประเมินความเสี่ยง &amp; Prompt ที่ป้องกันแล้ว</h4>
+                  <span class="sub-hint">ห่อหุ้มด้วยแท็ก <code>&lt;untrusted_user_content&gt;</code> และกรองคำสั่งอันตรายออก</span>
+                </div>
+                <button type="button" class="btn-success btn-sm" id="btnCopyDefendedPrompt">📋 คัดลอก Safe Prompt</button>
+              </div>
+              <div class="stat-cards-3col">
+                <div class="mini-metric"><span>คะแนนความเสี่ยง</span><strong id="pgRiskScore">0 / 100</strong></div>
+                <div class="mini-metric highlight"><span>ระดับความเสี่ยง</span><strong id="pgRiskLevel">SAFE</strong></div>
+                <div class="mini-metric"><span>จุดที่ตรวจพบ</span><strong id="pgFindingsCount">0 จุด</strong></div>
+              </div>
+              <textarea id="promptGuardOutput" class="code-textarea output-readonly" style="min-height:210px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             NEW TOOL 2: .ENV & CONFIG SAFE-SHARE SANITIZER
+             ================================================================ -->
+        <section id="view-env-sanitizer" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ไฟล์ตั้งค่าต้นฉบับ (`.env` / `docker-compose.yml` / `JSON`)</h4>
+                  <span class="sub-hint">คงชื่อตัวแปร โครงสร้าง และพอร์ตไว้ แต่ซ่อนรหัสผ่านและ API Keys อัตโนมัติ</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSampleEnvConfig">โหลดตัวอย่าง .env</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunEnvSanitizer">คลีนไฟล์ตั้งค่า</button>
+                </div>
+              </div>
+              <textarea id="envSanitizerInput" class="code-textarea" style="min-height:290px;"></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ไฟล์ตั้งค่าที่ปลอดภัยพร้อมส่งถาม AI</h4>
+                  <span class="sub-hint" id="envRedactedBadge">ปกปิดรหัสลับ 0 จุด</span>
+                </div>
+                <button type="button" class="btn-success btn-sm" id="btnCopySanitizedEnv">📋 คัดลอก Config</button>
+              </div>
+              <textarea id="envSanitizerOutput" class="code-textarea output-readonly" style="min-height:290px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             NEW TOOL 3: FUNCTION-TO-TOOL SCHEMA GENERATOR (4 PROVIDERS)
+             ================================================================ -->
+        <section id="view-fn-to-tool" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>โค้ดฟังก์ชัน (Python `def` หรือ TypeScript `function`)</h4>
+                  <span class="sub-hint">อ่านพารามิเตอร์ Type Hints ค่าเริ่มต้น และ Docstring อัตโนมัติ</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSamplePyFn">ตัวอย่าง Python</button>
+                  <button type="button" class="btn-xs" id="btnSampleTsFn">ตัวอย่าง TypeScript</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunFnToTool">สร้าง Tool Schema</button>
+                </div>
+              </div>
+              <textarea id="fnToToolInput" class="code-textarea" style="min-height:290px;"></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>Tool Definition JSON</h4>
+                  <span class="sub-hint">เลือกค่ายโมเดลที่ต้องการใช้งาน</span>
+                </div>
+                <div class="card-actions">
+                  <select id="fnToolProviderSelect" class="input-select input-sm">
+                    <option value="openai_tool" selected>OpenAI (Strict Tools)</option>
+                    <option value="anthropic_tool">Anthropic Claude (input_schema)</option>
+                    <option value="gemini_tool">Google Gemini (function_declarations)</option>
+                    <option value="mcp_tool">MCP (Model Context Protocol)</option>
+                  </select>
+                  <button type="button" class="btn-success btn-sm" id="btnCopyFnToolSchema">📋 คัดลอก</button>
+                </div>
+              </div>
+              <textarea id="fnToToolOutput" class="code-textarea output-readonly" style="min-height:290px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             NEW TOOL 4: RAW SSE STREAM & AGENT TRACE RECONSTRUCTOR
+             ================================================================ -->
+        <section id="view-sse-reconstructor" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>Raw SSE Stream Log (`data: {...}`)</h4>
+                  <span class="sub-hint">รองรับ OpenAI Chat Completions, Claude Stream และ vLLM</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSampleSseStream">โหลดตัวอย่าง SSE</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunSseReconstruct">ประกอบร่างข้อความ</button>
+                </div>
+              </div>
+              <textarea id="sseStreamInput" class="code-textarea" style="min-height:280px;"></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ข้อความและ Tool Calls ที่ประกอบร่างสมบูรณ์แล้ว</h4>
+                  <span class="sub-hint" id="sseStatsBadge">0 Chunks</span>
+                </div>
+                <button type="button" class="btn-success btn-sm" id="btnCopySseOutput">📋 คัดลอกผลลัพธ์</button>
+              </div>
+              <textarea id="sseStreamOutput" class="code-textarea output-readonly" style="min-height:280px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             NEW TOOL 5: AGENTS.MD / CLAUDE.MD / LLMS.TXT GENERATOR
+             ================================================================ -->
+        <section id="view-agents-md" class="tool-view">
+          <div class="editor-card">
+            <div class="card-header">
+              <div>
+                <h4>ระบุโฟลเดอร์โปรเจกต์เพื่อสร้างคู่มือสำหรับ Coding Agent</h4>
+                <span class="sub-hint">สแกน Tech Stack, คำสั่งรันเทสต์ และโครงสร้างไฟล์เพื่อสร้าง `AGENTS.md` และ `llms.txt`</span>
+              </div>
+              <div class="card-actions">
+                <input type="text" id="agentsMdFolderInput" class="input-text input-sm" value="." style="width:260px;" />
+                <button type="button" class="btn-primary btn-sm" id="btnRunAgentsMd">สแกนและสร้างไฟล์</button>
+              </div>
+            </div>
+            <div class="split-editor-grid">
+              <div>
+                <div class="highlighted-box-header">
+                  <span>1. ไฟล์ `AGENTS.md` / `CLAUDE.md`</span>
+                  <button type="button" class="btn-xs" id="btnCopyAgentsMd">📋 คัดลอก AGENTS.md</button>
+                </div>
+                <textarea id="agentsMdOutput" class="code-textarea output-readonly" style="min-height:260px;" readonly></textarea>
+              </div>
+              <div>
+                <div class="highlighted-box-header">
+                  <span>2. ไฟล์ `llms.txt` (มาตรฐานดัชนี 문서 สำหรับ LLM)</span>
+                  <button type="button" class="btn-xs" id="btnCopyLlmsTxt">📋 คัดลอก llms.txt</button>
+                </div>
+                <textarea id="llmsTxtOutput" class="code-textarea output-readonly" style="min-height:260px;" readonly></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             NEW TOOL 6: JSON-TO-TOON & CONTEXT COMPRESSOR
+             ================================================================ -->
+        <section id="view-json-compressor" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ข้อมูล JSON ต้นฉบับ (Array of Objects)</h4>
+                  <span class="sub-hint">แปลง JSON ที่ฟุ่มเฟือยให้เป็นฟอร์แมตประหยัด Token สำหรับใส่ใน Prompt</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSampleVerboseJson">โหลดตัวอย่าง JSON</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunJsonCompressor">บีบอัดข้อมูล</button>
+                </div>
+              </div>
+              <textarea id="jsonCompressorInput" class="code-textarea" style="min-height:280px;"></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ผลลัพธ์ที่บีบอัดแล้ว</h4>
+                  <span class="sub-hint" id="jsonCompressedBadge">ประหยัด 0%</span>
+                </div>
+                <div class="card-actions">
+                  <select id="jsonCompressFormatSelect" class="input-select input-sm">
+                    <option value="toon" selected>TOON (Token-Oriented Object Notation)</option>
+                    <option value="markdown_table">Markdown Pipe Table</option>
+                    <option value="tsv">Compact TSV</option>
+                    <option value="yaml_lite">YAML-Lite</option>
+                  </select>
+                  <button type="button" class="btn-success btn-sm" id="btnCopyCompressedJson">📋 คัดลอก</button>
+                </div>
+              </div>
+              <textarea id="jsonCompressorOutput" class="code-textarea output-readonly" style="min-height:280px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             NEW TOOL 7: SMART STACKTRACE & LOG COMPRESSOR
+             ================================================================ -->
+        <section id="view-log-compressor" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>Application Log / Stacktrace ต้นฉบับ</h4>
+                  <span class="sub-hint">ยุบบรรทัดซ้ำ ตัดบรรทัด Library ภายใน และปกปิด PII อัตโนมัติ</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSampleRawLog">โหลดตัวอย่าง Log</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunLogCompressor">ย่อและคลีน Log</button>
+                </div>
+              </div>
+              <div style="display:flex; gap:16px; margin-bottom:6px;">
+                <label class="checkbox-inline">
+                  <input type="checkbox" id="logStripInternalsCheck" checked />
+                  <span>ย่อบรรทัด `site-packages` / `node_modules`</span>
+                </label>
+                <label class="checkbox-inline">
+                  <input type="checkbox" id="logMaskPiiCheck" checked />
+                  <span>ปกปิดข้อมูลส่วนบุคคล (PII) ใน Log อัตโนมัติ</span>
+                </label>
+              </div>
+              <textarea id="logCompressorInput" class="code-textarea" style="min-height:260px;"></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>Log ที่กระชับและปลอดภัยพร้อมส่งถาม AI</h4>
+                  <span class="sub-hint" id="logCompressedStatsBadge">ลดลง 0%</span>
+                </div>
+                <button type="button" class="btn-success btn-sm" id="btnCopyCompressedLog">📋 คัดลอก Log</button>
+              </div>
+              <textarea id="logCompressorOutput" class="code-textarea output-readonly" style="min-height:290px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             NEW TOOL 8: LLM OUTPUT VS. JSON SCHEMA VALIDATOR
+             ================================================================ -->
+        <section id="view-schema-validator" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>1. JSON Schema เป้าหมาย &amp; 2. JSON ที่ LLM ตอบกลับมา</h4>
+                  <span class="sub-hint">ตรวจสอบชนิดข้อมูล ฟิลด์บังคับ (`required`) และตัวเลือก `enum`</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSampleSchemaValidation">โหลดตัวอย่าง</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunSchemaValidator">ตรวจสอบ Schema</button>
+                </div>
+              </div>
+              <label class="field-label">Target JSON Schema</label>
+              <textarea id="schemaValidatorSchemaInput" class="code-textarea" style="min-height:130px;"></textarea>
+              <label class="field-label">LLM JSON Output</label>
+              <textarea id="schemaValidatorDataInput" class="code-textarea" style="min-height:120px;"></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ผลการตรวจสอบ &amp; Self-Correction Retry Prompt</h4>
+                  <span class="sub-hint" id="schemaValStatusBadge">พร้อมตรวจสอบ</span>
+                </div>
+                <button type="button" class="btn-success btn-sm" id="btnCopyRetryPrompt">📋 คัดลอก Retry Prompt</button>
+              </div>
+              <div id="schemaValErrorsList" class="entity-stats-bar" style="min-height:48px;"></div>
+              <label class="field-label">Prompt สำหรับส่งให้ LLM แก้คำตอบตัวเองอัตโนมัติ</label>
+              <textarea id="schemaValRetryOutput" class="code-textarea output-readonly" style="min-height:210px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             NEW TOOL 9: EXCEL/CSV TO AI EVAL & FINE-TUNING .JSONL BUILDER
+             ================================================================ -->
+        <section id="view-eval-dataset" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ข้อมูลตารางคำถาม-คำตอบ (CSV / TSV)</h4>
+                  <span class="sub-hint">แปลงตาราง QA เป็นไฟล์ `.jsonl` พร้อมล้างข้อมูลส่วนบุคคล (PII) อัตโนมัติ</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnSampleEvalCsv">โหลดตัวอย่าง QA</button>
+                  <button type="button" class="btn-primary btn-sm" id="btnRunEvalDataset">แปลงเป็น .jsonl</button>
+                </div>
+              </div>
+              <div class="param-row-2col">
+                <div>
+                  <label class="field-label">รูปแบบไฟล์ปลายทาง</label>
+                  <select id="evalDatasetFormatSelect" class="input-select input-sm">
+                    <option value="openai_jsonl" selected>OpenAI Chat Fine-Tuning (.jsonl)</option>
+                    <option value="sharegpt_jsonl">ShareGPT Conversations (.jsonl)</option>
+                    <option value="promptfoo_eval">Promptfoo / Eval Test Cases (.jsonl)</option>
+                  </select>
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                  <label class="checkbox-inline">
+                    <input type="checkbox" id="evalDatasetMaskPiiCheck" checked />
+                    <span>ปกปิด PII อัตโนมัติก่อนสร้าง Dataset</span>
+                  </label>
+                </div>
+              </div>
+              <label class="field-label">System Prompt เริ่มต้น</label>
+              <input type="text" id="evalDatasetSystemInput" class="input-text input-sm" value="คุณคือผู้ช่วย AI ฝ่ายบริการลูกค้า ตอบคำถามอย่างสุภาพและแม่นยำ" />
+              <label class="field-label">ข้อมูล CSV (คอลัมน์ `question,answer` หรือ `input,output`)</label>
+              <textarea id="evalDatasetCsvInput" class="code-textarea" style="min-height:175px;"></textarea>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ผลลัพธ์ไฟล์ `.jsonl` พร้อมใช้งาน</h4>
+                  <span class="sub-hint" id="evalDatasetStatsBadge">0 แถว</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-success btn-sm" id="btnCopyEvalJsonl">📋 คัดลอก</button>
+                  <button type="button" class="btn-secondary btn-sm" id="btnDownloadEvalJsonl">💾 ดาวน์โหลด .jsonl</button>
+                </div>
+              </div>
+              <textarea id="evalDatasetJsonlOutput" class="code-textarea output-readonly" style="min-height:290px;" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SETTINGS VIEW 1: DETECTION ENTITIES (SEPARATED INTO GROUP CARDS)
+             ================================================================ -->
+        <section id="view-settings" class="tool-view">
+          <div class="pane-toolbar">
+            <div class="toolbar-left">
+              <span class="toolbar-label">เลือกเปิดใช้งานด่วน:</span>
+              <button type="button" class="btn-secondary btn-sm" id="btnSelectAllEntities">เปิดทั้งหมดทุกกลุ่ม</button>
+              <button type="button" class="btn-secondary btn-sm" id="btnSelectThaiOnly">เฉพาะข้อมูลไทย &amp; รหัสลับ</button>
+              <button type="button" class="btn-secondary btn-sm" id="btnSelectFinancialOnly">เฉพาะข้อมูลการเงิน &amp; บัตร</button>
+              <button type="button" class="btn-secondary btn-sm" id="btnDeselectAllEntities">ปิดทั้งหมด</button>
+            </div>
+            <div class="toolbar-right">
+              <span id="enabledEntitiesSummaryBadge" class="badge-count">เปิดใช้งาน 0 ประเภท</span>
+            </div>
+          </div>
+
+          <!-- Separate Group Cards Container (5 Distinct Domain Groups) -->
+          <div id="entityChecklistContainer" class="settings-groups-grid"></div>
+        </section>
+
+        <!-- ================================================================
+             SETTINGS VIEW 2: MASKING THRESHOLD & PER-ENTITY OVERRIDES
+             ================================================================ -->
+        <section id="view-settings-masking" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>1. ความไวและความมั่นใจขั้นต่ำในการตรวจจับ (Confidence Threshold)</h4>
+                  <span class="sub-hint">ค่าต่ำ = ตรวจจับเข้มงวดขึ้น (เก็บตกได้มาก) • ค่าสูง = เฉพาะจุดที่มั่นใจสูงเท่านั้น</span>
+                </div>
+                <button type="button" class="btn-xs" id="btnResetThreshold">รีเซ็ตค่าเริ่มต้น (0.45)</button>
+              </div>
+
+              <div class="threshold-box" style="margin-top:4px;">
+                <div class="threshold-row">
+                  <span>คะแนนความมั่นใจขั้นต่ำ (Score Threshold)</span>
+                  <strong id="thresholdValLabel" style="font-size:16px; color:#2563eb;">0.45</strong>
+                </div>
+                <input type="range" id="thresholdSlider" min="0.15" max="0.95" step="0.05" value="0.45" />
+                <div class="threshold-row" style="margin-top:6px; color:#64748b; font-size:11.5px;">
+                  <span>0.15 (เข้มงวดสูงสุด)</span>
+                  <span>0.45 (สมดุล - แนะนำ)</span>
+                  <span>0.95 (เฉพาะที่ตรง 100%)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>2. กำหนดรูปแบบการปกปิดแยกตามประเภทข้อมูล (Per-Entity Overrides)</h4>
+                  <span class="sub-hint">ตั้งค่าให้ข้อมูลบางประเภทใช้วิธีปกปิดเฉพาะตัว ต่างจากค่าเริ่มต้นด้านบนได้</span>
+                </div>
+                <button type="button" class="btn-xs" id="btnClearEntityOverrides">ล้างค่าเฉพาะรายประเภท</button>
+              </div>
+
+              <div class="form-stack">
+                <div class="param-row-3col">
+                  <div>
+                    <label class="field-label">ประเภทข้อมูล (Entity)</label>
+                    <select id="overrideEntitySelect" class="input-select">
+                      <option value="TH_NATIONAL_ID">TH_NATIONAL_ID (บัตรประชาชน)</option>
+                      <option value="TH_PERSON_NAME">TH_PERSON_NAME (ชื่อ-สกุลไทย)</option>
+                      <option value="TH_PHONE_NUMBER">TH_PHONE_NUMBER (เบอร์โทรไทย)</option>
+                      <option value="TH_BANK_ACCOUNT">TH_BANK_ACCOUNT (เลขบัญชีไทย)</option>
+                      <option value="API_KEY_SECRET">API_KEY_SECRET (API Keys / รหัสลับ)</option>
+                      <option value="EMAIL_ADDRESS">EMAIL_ADDRESS (อีเมล)</option>
+                      <option value="CREDIT_CARD">CREDIT_CARD (บัตรเครดิต)</option>
+                      <option value="PERSON">PERSON (ชื่อภาษาอังกฤษ)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="field-label">วิธีปกปิดเฉพาะประเภทนี้</label>
+                    <select id="overrideModeSelect" class="input-select">
+                      <option value="keep_prefix_suffix">เว้นหน้า / เว้นหลัง</option>
+                      <option value="redact">เซ็นเซอร์ ([REDACTED])</option>
+                      <option value="replace">ป้ายประเภท (&lt;ENTITY&gt;)</option>
+                      <option value="token">Token ([ENTITY_1])</option>
+                      <option value="hash">Hash (SHA-256)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="field-label">เว้นหน้า / เว้นหลัง (ตัว)</label>
+                    <div style="display:flex; gap:6px;">
+                      <input type="number" id="overrideKeepStart" class="input-num" value="1" min="0" max="15" />
+                      <input type="number" id="overrideKeepEnd" class="input-num" value="4" min="0" max="15" />
+                      <button type="button" class="btn-primary btn-sm" id="btnAddEntityOverride">บันทึก</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="highlighted-box-header" style="margin-top:8px;">
+                <span>รายการตั้งค่าเฉพาะรายประเภทที่เปิดใช้</span>
+              </div>
+              <div id="entityOverridesListBox" class="custom-rules-list" style="min-height:60px;">
+                <span class="muted-placeholder">ยังไม่ได้กำหนดแยกประเภท (ทุกประเภทใช้รูปแบบการปกปิดหลักร่วมกัน)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SETTINGS VIEW 3: CUSTOM REGEX & DENY-LIST RULES
+             ================================================================ -->
+        <section id="view-settings-rules" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>เพิ่มกฎตรวจจับใหม่ (Custom Regex / Deny-list)</h4>
+                  <span class="sub-hint">สร้างกฎตรวจจับรหัสพนักงาน เลขกรมธรรม์ หรือคำเฉพาะขององค์กร</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn-xs" id="btnPresetRulePolicy">ตัวอย่าง: เลขกรมธรรม์</button>
+                  <button type="button" class="btn-xs" id="btnPresetRuleEmp">ตัวอย่าง: รหัสพนักงาน</button>
+                </div>
+              </div>
+              <div class="form-stack">
+                <div class="param-row-2col">
+                  <div>
+                    <label class="field-label">ชื่อประเภทข้อมูล (เช่น POLICY_NO, EMP_ID)</label>
+                    <input type="text" id="customEntityName" class="input-text" placeholder="เช่น POLICY_NO" />
+                  </div>
+                  <div>
+                    <label class="field-label">คะแนนความมั่นใจ (0.1 - 1.0)</label>
+                    <input type="number" id="customEntityScore" class="input-num" value="0.90" min="0.1" max="1.0" step="0.05" />
+                  </div>
+                </div>
+                <div>
+                  <label class="field-label">Regular Expression Pattern (เว้นว่างได้หากใช้รายการคำเฉพาะ)</label>
+                  <input type="text" id="customEntityRegex" class="input-text" placeholder="เช่น \b\d{5}-\d{3}-\d{9}\b หรือ EMP-\d{5}" />
+                </div>
+                <div>
+                  <label class="field-label">รายการคำเฉพาะที่ต้องการปกปิดเสมอ (Deny-list คั่นด้วย `,`)</label>
+                  <input type="text" id="customEntityDenyList" class="input-text" placeholder="เช่น โครงการลับ, Project Titan, บริษัท ตัวอย่าง จำกัด" />
+                </div>
+                <input type="hidden" id="customEntityContext" value="" />
+                <div style="display:flex; justify-content:flex-end;">
+                  <button type="button" class="btn-primary btn-sm" id="btnAddCustomRule">➕ บันทึกกฎตรวจจับใหม่</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>รายการกฎที่บันทึกไว้ &amp; ทดสอบกฎทันที</h4>
+                  <span class="sub-hint">กฎที่เพิ่มจะถูกนำไปใช้ทั้งในหน้าข้อความและหน้าไฟล์ Excel อัตโนมัติ</span>
+                </div>
+              </div>
+              <div id="customRulesListBox" class="custom-rules-list" style="min-height:110px; max-height:180px;"></div>
+
+              <div class="highlighted-box-header" style="margin-top:8px;">
+                <span>ทดสอบกฎของคุณกับข้อความตัวอย่าง (Live Rule Test)</span>
+                <button type="button" class="btn-xs" id="btnTestCustomRuleNow">ทดสอบทันที</button>
+              </div>
+              <textarea id="customRuleTestInput" class="code-textarea" style="min-height:75px;" placeholder="พิมพ์ข้อความเพื่อทดสอบกฎที่เพิ่ม เช่น รหัสพนักงาน EMP-12345..."></textarea>
+              <div id="customRuleTestOutput" class="entity-stats-bar" style="font-family:var(--font-mono); font-size:12px;">
+                <span class="muted-placeholder">ผลลัพธ์การทดสอบกฎจะแสดงที่นี่...</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SETTINGS VIEW 4: SYSTEM DIAGNOSTICS & AUTOMATED SELF-TEST
+             ================================================================ -->
+        <section id="view-settings-system" class="tool-view">
+          <div class="split-editor-grid">
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ข้อมูลระบบและการจัดการหน่วยความจำ (System Runtime)</h4>
+                  <span class="sub-hint">ประมวลผลภายในเครื่อง 100% โดยไม่ส่งข้อมูลออกภายนอก</span>
+                </div>
+                <button type="button" class="btn-secondary btn-sm" id="btnClearSystemCache">🧹 ล้างหน่วยความจำแคช</button>
+              </div>
+              <div class="threshold-box" id="systemRuntimeInfoBox" style="font-size:13px; line-height:1.8;">
+                กำลังโหลดข้อมูลระบบ...
+              </div>
+            </div>
+
+            <div class="editor-card">
+              <div class="card-header">
+                <div>
+                  <h4>ชุดทดสอบระบบอัตโนมัติ (Automated End-to-End Action Suite)</h4>
+                  <span class="sub-hint">ตรวจสอบการทำงานของทุกเมนู ทุกโหมดการปกปิด ไฟล์ Excel/CSV และ AI Tools ทั้งหมดในคลิกเดียว</span>
+                </div>
+                <button type="button" class="btn-primary btn-sm" id="btnRunSystemSelfTest">▶️ รันทดสอบทุกฟังก์ชันอัตโนมัติ</button>
+              </div>
+              <div class="stat-cards-3col">
+                <div class="mini-metric"><span>จำนวนชุดทดสอบ</span><strong id="stTotalCount">0</strong></div>
+                <div class="mini-metric highlight"><span>ผ่าน (Passed)</span><strong id="stPassedCount" style="color:#059669;">0</strong></div>
+                <div class="mini-metric"><span>เวลารวม</span><strong id="stElapsedMs">0 ms</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="card-header">
+              <h4>ผลการตรวจสอบการทำงานแยกตามกลุ่ม (Automated Action Test Report)</h4>
+            </div>
+            <div class="table-scroll" style="max-height:360px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width:90px;">สถานะ</th>
+                    <th style="width:170px;">กลุ่มเครื่องมือ</th>
+                    <th>รายการทดสอบ (Action Test Case)</th>
+                    <th>รายละเอียดผลลัพธ์</th>
+                    <th style="width:90px;">เวลา</th>
+                  </tr>
+                </thead>
+                <tbody id="selfTestTableBody">
+                  <tr><td colspan="5" class="empty-cell">กดปุ่ม "▶️ รันทดสอบทุกฟังก์ชันอัตโนมัติ" ด้านบนเพื่อตรวจสอบการทำงานทุกส่วน</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=3.0"></script>
+</body>
+</html>

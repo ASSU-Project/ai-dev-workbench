@@ -1,0 +1,23 @@
+# Python virtual environments & caches
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build & PyInstaller temp directories
+build/
+*.spec
+
+# Keep dist/ ignored from git source commits (published via GitHub Releases)
+dist/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
