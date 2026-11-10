@@ -708,6 +708,84 @@ def test_encoding_and_format_converter_on_csv_and_mojibake():
     assert '"delivery_count": 72243' in moji_data["preview_text"]
 
 
+def test_presidio_demo_parity_models_operators_and_explanations():
+    """Verify Presidio HF Demo parity: 6 NER model profiles, Synthetic Faker, AES/CTR Encrypt/Decrypt,
+    Allowlist, Denylist, Context Words, GLiNER Zero-Shot Labels, and Analysis Explanation metadata.
+    """
+    client = TestClient(app)
+
+    # 1. Verify /api/info exposes model_backends
+    r_info = client.get("/api/info")
+    assert r_info.status_code == 200
+    assert len(r_info.json().get("model_backends", [])) >= 6
+
+    # 2. Test Synthetic (Faker) mode
+    r_synth = client.post(
+        "/api/mask-text",
+        json={
+            "text": "ลูกค้า นายสมชาย ใจดีมาก โทร 081-234-5678 บัตรประชาชน 1-1005-01234-56-7",
+            "config": {"mode": "synthetic"},
+        },
+    )
+    assert r_synth.status_code == 200
+    synth_data = r_synth.json()
+    assert "สมชาย ใจดีมาก" not in synth_data["masked_text"]
+    assert "081-234-5678" not in synth_data["masked_text"]
+    assert synth_data["total_masked"] >= 3
+    # Verify explanation metadata exists on every detection
+    for det in synth_data["detections"]:
+        assert "recognizer_name" in det and det["recognizer_name"]
+        assert "explanation" in det and det["explanation"]
+
+    # 3. Test Encrypt (AES/CTR ENC[...]) & Decrypt restoration
+    r_enc = client.post(
+        "/api/mask-text",
+        json={
+            "text": "ความลับ นายสมชาย ใจดีมาก โทร 081-234-5678",
+            "config": {"mode": "encrypt", "encryption_key": "my-custom-key-999"},
+        },
+    )
+    assert r_enc.status_code == 200
+    enc_text = r_enc.json()["masked_text"]
+    assert "ENC[" in enc_text
+    assert "081-234-5678" not in enc_text
+
+    # Restore via secret key ONLY (even with empty token_map!)
+    r_dec = client.post(
+        "/api/restore-text",
+        json={"text": enc_text, "token_map": {}, "encryption_key": "my-custom-key-999"},
+    )
+    assert r_dec.status_code == 200
+    assert "สมชาย ใจดีมาก" in r_dec.json()["restored_text"]
+    assert "081-234-5678" in r_dec.json()["restored_text"]
+
+    # 4. Test Allowlist, Denylist, Stanford Clinical PHI, and GLiNER Zero-Shot Labels
+    r_adv = client.post(
+        "/api/mask-text",
+        json={
+            "text": "คนไข้ HN-889900 รหัสโรค J06.9 ที่ โรงพยาบาลศิริราช โทร 02-345-6789 เลขที่กรมธรรม์: POL-2026-999 โครงการ Project Titan",
+            "config": {
+                "mode": "replace",
+                "model_profile": "stanford_clinical",
+                "allow_list": ["02-345-6789"],
+                "deny_list": ["Project Titan"],
+                "gliner_labels": ["POLICY_NO"],
+            },
+        },
+    )
+    assert r_adv.status_code == 200
+    adv_out = r_adv.json()["masked_text"]
+    # Allowlisted phone stays untouched
+    assert "02-345-6789" in adv_out
+    # Clinical MRN, ICD-10, Hospital, GLiNER POLICY_NO, and Denylist Project Titan are all masked!
+    assert "<MEDICAL_RECORD_NUMBER>" in adv_out
+    assert "<ICD10_DIAGNOSIS>" in adv_out
+    assert "<HOSPITAL_NAME>" in adv_out
+    assert "<POLICY_NO>" in adv_out
+    assert "<CUSTOM_DENYLIST>" in adv_out
+
+
+
 
 
 

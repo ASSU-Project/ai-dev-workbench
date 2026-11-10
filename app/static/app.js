@@ -152,6 +152,12 @@ function previewMaskSample(sample, entityType) {
   if (cfg.mode === "token") {
     return `[${entityType}_1]`;
   }
+  if (cfg.mode === "synthetic") {
+    return entityType === "TH_PHONE_NUMBER" ? "089-741-3920" : "นายกิตติพงศ์ วัฒนากูล";
+  }
+  if (cfg.mode === "encrypt") {
+    return "ENC[k8xP2vQ9mN...]";
+  }
   if (cfg.mode === "redact") {
     return cfg.redact_marker || "[REDACTED]";
   }
@@ -179,6 +185,10 @@ function updateModeVisibilityAndPreview() {
   els.paramsStandardMask.classList.toggle("hidden", mode !== "mask");
   els.paramsRedact.classList.toggle("hidden", mode !== "redact");
   els.paramsHash.classList.toggle("hidden", mode !== "hash");
+  const paramsEncrypt = document.getElementById("paramsEncrypt");
+  if (paramsEncrypt) {
+    paramsEncrypt.classList.toggle("hidden", mode !== "encrypt");
+  }
 
   els.lpPhoneAfter.textContent = previewMaskSample("081-234-5678", "TH_PHONE_NUMBER");
   els.lpNameAfter.textContent = previewMaskSample("สมชาย ใจดีมาก", "TH_PERSON_NAME");
@@ -201,6 +211,10 @@ function applyPreset(presetKey) {
     els.preserveSepCheckbox.checked = true;
   } else if (presetKey === "token") {
     els.maskModeSelect.value = "token";
+  } else if (presetKey === "synthetic") {
+    els.maskModeSelect.value = "synthetic";
+  } else if (presetKey === "encrypt") {
+    els.maskModeSelect.value = "encrypt";
   } else if (presetKey === "replace") {
     els.maskModeSelect.value = "replace";
     els.replaceTemplateInput.value = "<{entity_type}>";
@@ -214,13 +228,26 @@ function applyPreset(presetKey) {
   if (state.excelUploadId) runExcelMasking();
 }
 
+function _parseCommaList(elId) {
+  const el = document.getElementById(elId);
+  if (!el || !el.value) return [];
+  return el.value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function buildConfigPayload() {
   const checkedEntities = Array.from(
     document.querySelectorAll(".entity-checkbox:checked")
   ).map((cb) => cb.value);
 
+  const modelProfileEl = document.getElementById("modelProfileSelect");
+  const encKeyEl = document.getElementById("encryptionKeyInput");
+
   return {
     mode: els.maskModeSelect.value,
+    model_profile: (modelProfileEl && modelProfileEl.value) || "spacy_hybrid",
     keep_start: parseInt(els.keepStartInput.value || "2", 10),
     keep_end: parseInt(els.keepEndInput.value || "3", 10),
     mask_start: parseInt(els.maskStartInput.value || "2", 10),
@@ -236,6 +263,11 @@ function buildConfigPayload() {
     hash_type: els.hashTypeSelect.value || "sha256",
     hash_salt: els.hashSaltInput.value || "",
     hash_length: parseInt(els.hashLenInput.value || "12", 10),
+    encryption_key: (encKeyEl && encKeyEl.value) || "presidio-secret-2026",
+    allow_list: _parseCommaList("allowListInput"),
+    deny_list: _parseCommaList("denyListInput"),
+    context_words: _parseCommaList("contextWordsInput"),
+    gliner_labels: _parseCommaList("glinerLabelsInput"),
     score_threshold: parseFloat(els.thresholdSlider.value || "0.45"),
     entities: checkedEntities,
     entity_overrides: state.entityOverrides || {},
@@ -524,12 +556,19 @@ function renderEntityStats(entityCounts) {
 function renderDetectionsTable(detections) {
   if (!detections || detections.length === 0) {
     els.detectionsTableBody.innerHTML =
-      '<tr><td colspan="7" class="empty-cell">ไม่พบรายการ PII ในข้อความนี้</td></tr>';
+      '<tr><td colspan="8" class="empty-cell">ไม่พบรายการ PII ในข้อความนี้</td></tr>';
     return;
   }
   els.detectionsTableBody.innerHTML = "";
   for (const d of detections) {
     const tr = document.createElement("tr");
+    const scorePct = Math.round((d.score || 0) * 100);
+    const boostBadge =
+      d.context_boost && d.context_boost > 0
+        ? ` <span style="color:#2563eb; font-size:11px;">(+${Math.round(d.context_boost * 100)}% Context)</span>`
+        : "";
+    const recName = d.recognizer_name || "PresidioRecognizer";
+    const expl = d.explanation || "";
     tr.innerHTML = `
       <td><input type="checkbox" class="det-row-toggle" data-idx="${d.index}" ${
       d.enabled ? "checked" : ""
@@ -538,7 +577,8 @@ function renderDetectionsTable(detections) {
       <td><span class="badge-pill">${escapeHtml(d.entity_type)}</span></td>
       <td><code>${escapeHtml(d.original_text)}</code></td>
       <td><code style="color: #059669; font-weight: 700;">${escapeHtml(d.masked_text)}</code></td>
-      <td>${Math.round(d.score * 100)}%</td>
+      <td><strong>${scorePct}%</strong>${boostBadge}</td>
+      <td style="font-size:12px;"><strong>${escapeHtml(recName)}:</strong> ${escapeHtml(expl)}</td>
       <td>${d.start}–${d.end}</td>
     `;
     els.detectionsTableBody.appendChild(tr);
@@ -1728,9 +1768,15 @@ ConnectionTimeoutError: Upstream gateway did not respond within 5000ms for user 
     state.debounceTimer = setTimeout(() => runTextMasking(true), 180);
   });
 
-  // Masking bar inputs
+  // Masking bar inputs + Presidio Demo Advanced Controls
   [
     els.maskModeSelect,
+    document.getElementById("modelProfileSelect"),
+    document.getElementById("encryptionKeyInput"),
+    document.getElementById("allowListInput"),
+    document.getElementById("denyListInput"),
+    document.getElementById("contextWordsInput"),
+    document.getElementById("glinerLabelsInput"),
     els.keepStartInput,
     els.keepEndInput,
     els.maskCharInput,
@@ -1745,15 +1791,17 @@ ConnectionTimeoutError: Upstream gateway did not respond within 5000ms for user 
     els.hashTypeSelect,
     els.hashLenInput,
     els.hashSaltInput,
-  ].forEach((inp) => {
-    const handler = () => {
-      updateModeVisibilityAndPreview();
-      if (els.inputTextArea.value.trim()) runTextMasking(false);
-      if (state.excelUploadId) runExcelMasking();
-    };
-    inp.addEventListener("input", handler);
-    inp.addEventListener("change", handler);
-  });
+  ]
+    .filter(Boolean)
+    .forEach((inp) => {
+      const handler = () => {
+        updateModeVisibilityAndPreview();
+        if (els.inputTextArea.value.trim()) runTextMasking(false);
+        if (state.excelUploadId) runExcelMasking();
+      };
+      inp.addEventListener("input", handler);
+      inp.addEventListener("change", handler);
+    });
 
   els.thresholdSlider.addEventListener("input", () => {
     els.thresholdValLabel.textContent = parseFloat(els.thresholdSlider.value).toFixed(2);

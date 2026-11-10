@@ -42,7 +42,12 @@ from app.ai_tools import (
     validate_json_against_schema,
     visualize_chunks,
 )
-from app.engine import MaskingConfig, PresidioMaskingEngine, ReversibleTokenizer
+from app.engine import (
+    MODEL_BACKENDS_CATALOG,
+    MaskingConfig,
+    PresidioMaskingEngine,
+    ReversibleTokenizer,
+)
 from app.excel_processor import (
     generate_sample_excel_bytes,
     inspect_tabular_file,
@@ -90,6 +95,7 @@ SESSION_TOKEN_MAP: Dict[str, str] = {}
 
 class MaskConfigPayload(BaseModel):
     mode: str = "keep_prefix_suffix"
+    model_profile: str = "spacy_hybrid"
     keep_start: int = 2
     keep_end: int = 3
     mask_start: int = 2
@@ -105,6 +111,11 @@ class MaskConfigPayload(BaseModel):
     hash_type: str = "sha256"
     hash_salt: str = ""
     hash_length: int = 12
+    encryption_key: str = "presidio-secret-2026"
+    allow_list: List[str] = Field(default_factory=list)
+    deny_list: List[str] = Field(default_factory=list)
+    context_words: List[str] = Field(default_factory=list)
+    gliner_labels: List[str] = Field(default_factory=list)
     score_threshold: float = 0.45
     entities: Optional[List[str]] = None
     entity_overrides: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
@@ -112,6 +123,7 @@ class MaskConfigPayload(BaseModel):
     def to_dataclass(self) -> MaskingConfig:
         return MaskingConfig(
             mode=self.mode,
+            model_profile=self.model_profile,
             keep_start=self.keep_start,
             keep_end=self.keep_end,
             mask_start=self.mask_start,
@@ -127,6 +139,11 @@ class MaskConfigPayload(BaseModel):
             hash_type=self.hash_type,
             hash_salt=self.hash_salt,
             hash_length=self.hash_length,
+            encryption_key=self.encryption_key or "presidio-secret-2026",
+            allow_list=self.allow_list or [],
+            deny_list=self.deny_list or [],
+            context_words=self.context_words or [],
+            gliner_labels=self.gliner_labels or [],
             score_threshold=self.score_threshold,
             entities=self.entities,
             entity_overrides=self.entity_overrides or {},
@@ -141,7 +158,8 @@ class TextMaskRequest(BaseModel):
 
 class RestoreTextRequest(BaseModel):
     text: str
-    token_map: Dict[str, str]
+    token_map: Dict[str, str] = Field(default_factory=dict)
+    encryption_key: str = "presidio-secret-2026"
 
 
 class CustomRuleRequest(BaseModel):
@@ -193,9 +211,10 @@ SAMPLE_TEXTS = {
 @app.get("/api/info")
 def get_info() -> Dict[str, Any]:
     return {
-        "app_name": "AI & Data Workbench",
+        "app_name": "AI Dev Workbench",
         "version": "2.0.0",
         "nlp_mode": engine.nlp_mode,
+        "model_backends": MODEL_BACKENDS_CATALOG,
         "parallel_workers": engine.max_workers,
         "entities": engine.get_supported_entities(),
         "custom_rules": engine.user_custom_rules,
@@ -220,7 +239,11 @@ def api_mask_text(req: TextMaskRequest) -> Dict[str, Any]:
 
 @app.post("/api/restore-text")
 def api_restore_text(req: RestoreTextRequest) -> Dict[str, Any]:
-    restored, count = ReversibleTokenizer.restore_text(req.text, req.token_map)
+    restored, count = ReversibleTokenizer.restore_text(
+        req.text,
+        req.token_map,
+        encryption_key=req.encryption_key,
+    )
     return {
         "restored_text": restored,
         "restored_count": count,

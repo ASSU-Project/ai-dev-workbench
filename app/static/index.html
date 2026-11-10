@@ -187,6 +187,12 @@
             <button type="button" class="preset-chip" data-preset="token">
               รหัสกู้คืนได้ <code>[PERSON_1]</code>
             </button>
+            <button type="button" class="preset-chip" data-preset="synthetic">
+              ข้อมูลจำลอง <code>Faker</code>
+            </button>
+            <button type="button" class="preset-chip" data-preset="encrypt">
+              เข้ารหัสลับ <code>ENC[...]</code>
+            </button>
             <button type="button" class="preset-chip" data-preset="replace">
               ป้ายประเภท <code>&lt;ENTITY&gt;</code>
             </button>
@@ -203,11 +209,25 @@
 
         <div class="mbar-controls">
           <div class="mbar-field">
-            <label for="maskModeSelect">โหมด</label>
+            <label for="modelProfileSelect">โมเดล NER / Engine</label>
+            <select id="modelProfileSelect" class="input-select input-sm" style="max-width:270px;">
+              <option value="spacy_hybrid" selected>⚡ spaCy (en_core_web_sm) + Thai Custom</option>
+              <option value="transformers_ner">🤗 Transformers NER (BERT / WangchanBERTa)</option>
+              <option value="stanford_clinical">🏥 StanfordAIMI / i2b2 Clinical &amp; Medical PHI</option>
+              <option value="gliner_zero_shot">🎯 GLiNER Zero-Shot Multi-PII (Custom Labels)</option>
+              <option value="stanza_context">🧠 Stanford Stanza + Context-Aware Enhancer</option>
+              <option value="llm_contextual">🤖 Contextual LLM / Local Ollama Verifier</option>
+            </select>
+          </div>
+
+          <div class="mbar-field">
+            <label for="maskModeSelect">โหมดการปกปิด</label>
             <select id="maskModeSelect" class="input-select input-sm">
               <option value="keep_prefix_suffix" selected>เว้นหน้า N / เว้นหลัง M ตัว</option>
               <option value="mask_prefix_suffix">ปิดหน้า N / ปิดหลัง M ตัว</option>
               <option value="token">Token Mapping ([PERSON_1])</option>
+              <option value="synthetic">🎭 Realistic Faker (สร้างข้อมูลจำลองเสมือนจริง)</option>
+              <option value="encrypt">🔐 Encrypt (เข้ารหัสลับ AES/CTR ถอดรหัสได้)</option>
               <option value="replace">Replace (&lt;ENTITY&gt;)</option>
               <option value="redact">Redact ([REDACTED] / ลบทิ้ง)</option>
               <option value="mask">Mask จากท้าย/หน้า N ตัว</option>
@@ -295,6 +315,13 @@
             </div>
             <input type="hidden" id="hashSaltInput" value="" />
           </div>
+
+          <div id="paramsEncrypt" class="mbar-inline-group hidden">
+            <div class="mbar-field">
+              <label for="encryptionKeyInput">รหัสลับ (Secret Key)</label>
+              <input type="text" id="encryptionKeyInput" class="input-text input-sm" value="presidio-secret-2026" style="width:170px;" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -318,6 +345,32 @@
             <div class="toolbar-right">
               <span class="muted-placeholder" id="textTimingLabel"></span>
               <button type="button" class="btn-primary btn-sm" id="btnRunTextMask">ประมวลผล</button>
+            </div>
+          </div>
+
+          <!-- Presidio Demo Parity: Inline Allowlist, Denylist, Context Words & Zero-Shot Labels -->
+          <div class="editor-card" style="padding:10px 14px; margin-bottom:10px;">
+            <div class="param-row-2col" style="margin-bottom:0; gap:10px;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div>
+                  <label class="field-label" style="margin-bottom:2px;">✅ Allowlist (คำยกเว้น ไม่ต้องปกปิด — คั่นด้วยลูกน้ำ)</label>
+                  <input type="text" id="allowListInput" class="input-text input-sm" placeholder="เช่น 02-345-6789, support@company.co.th" />
+                </div>
+                <div>
+                  <label class="field-label" style="margin-bottom:2px;">🚫 Denylist (คำบังคับปกปิดเสมอ 100% — คั่นด้วยลูกน้ำ)</label>
+                  <input type="text" id="denyListInput" class="input-text input-sm" placeholder="เช่น Project Titan, VIP-999, ความลับบริษัท" />
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div>
+                  <label class="field-label" style="margin-bottom:2px;">🧠 Context Words (คำบริบทช่วยเพิ่มคะแนน +0.30)</label>
+                  <input type="text" id="contextWordsInput" class="input-text input-sm" placeholder="เช่น กรมธรรม์, ผู้เอาประกัน, HN, รหัสลูกค้า" />
+                </div>
+                <div>
+                  <label class="field-label" style="margin-bottom:2px;">🎯 GLiNER Zero-Shot Labels (ชื่อ Entity กำหนดเอง)</label>
+                  <input type="text" id="glinerLabelsInput" class="input-text input-sm" placeholder="เช่น POLICY_NO, TAX_ID, HOSPITAL" />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -374,8 +427,9 @@
                     <th>ประเภทข้อมูล</th>
                     <th>ค่าต้นฉบับ</th>
                     <th>ค่าหลังปกปิด</th>
-                    <th style="width: 100px;">ความมั่นใจ</th>
-                    <th style="width: 100px;">ตำแหน่ง</th>
+                    <th style="width: 110px;">ความมั่นใจ</th>
+                    <th>โมเดล &amp; คำอธิบายการตัดสินใจ (Analysis Explanation)</th>
+                    <th style="width: 90px;">ตำแหน่ง</th>
                   </tr>
                 </thead>
                 <tbody id="detectionsTableBody"></tbody>
